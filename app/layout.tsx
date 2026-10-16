@@ -1,11 +1,17 @@
 import type { Metadata } from "next";
 import { Courier_Prime, JetBrains_Mono, Press_Start_2P } from "next/font/google";
+import { Footer } from "@/components/footer";
+import { Nav } from "@/components/nav";
 import "./globals.css";
 
+// Misma pila que la referencia: los glifos que la fuente pixel no tiene (≡, ▾…)
+// caen en system-ui, no en el fallback métrico de next/font.
 const pressStart2P = Press_Start_2P({
   variable: "--font-press-start-2p",
   weight: "400",
   subsets: ["latin"],
+  fallback: ["system-ui", "monospace"],
+  adjustFontFallback: false,
 });
 
 const jetBrainsMono = JetBrains_Mono({
@@ -34,7 +40,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body>
         <div className="av-bg"></div>
         <div className="av-noise"></div>
-        <div id="root">{children}</div>
+        <div id="root">
+          <Nav />
+          <main className="av-main">{children}</main>
+          <Footer />
+        </div>
       </body>
     </html>
   );
