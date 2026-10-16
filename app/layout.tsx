@@ -4,10 +4,14 @@ import { Footer } from "@/components/footer";
 import { Nav } from "@/components/nav";
 import "./globals.css";
 
+// Misma pila que la referencia: los glifos que la fuente pixel no tiene (≡, ▾…)
+// caen en system-ui, no en el fallback métrico de next/font.
 const pressStart2P = Press_Start_2P({
   variable: "--font-press-start-2p",
   weight: "400",
   subsets: ["latin"],
+  fallback: ["system-ui", "monospace"],
+  adjustFontFallback: false,
 });
 
 const jetBrainsMono = JetBrains_Mono({

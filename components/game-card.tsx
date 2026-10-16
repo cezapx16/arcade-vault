@@ -48,7 +48,7 @@ export function GameCard({ game }: { game: Game }) {
             <span>MEJOR PUNTUACIÓN</span>
             <b>{game.best.toLocaleString("es-ES")}</b>
           </div>
-          <span className={("btn " + BTN_COLOR[game.color]).trim()}>JUGAR</span>
+          <span className={("btn text-center " + BTN_COLOR[game.color]).trim()}>JUGAR</span>
         </div>
       </div>
     </Link>

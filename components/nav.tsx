@@ -45,7 +45,7 @@ export function Nav() {
             {user.name} ▾
           </button>
         ) : (
-          <Link href="/login" className="btn auth-btn">Iniciar Sesión</Link>
+          <Link href="/login" className="btn auth-btn text-center">Iniciar Sesión</Link>
         )}
         <button className="btn ghost hamburger" onClick={() => setOpen(true)} aria-label="Menú" aria-expanded={open}>
           ≡
