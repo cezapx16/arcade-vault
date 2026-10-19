@@ -94,7 +94,7 @@ export function HallOfFame() {
       </div>
 
       <div className="mt-8 text-center">
-        <Link href="/" className="btn lg text-center">VOLVER A LA BIBLIOTECA</Link>
+        <Link href="/games" className="btn lg text-center">VOLVER A LA BIBLIOTECA</Link>
       </div>
     </div>
   );

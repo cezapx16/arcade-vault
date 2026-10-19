@@ -8,7 +8,7 @@ import { signOut, useUser } from "@/lib/session";
 type Section = "biblioteca" | "salon" | "login";
 
 function sectionOf(pathname: string): Section | null {
-  if (pathname === "/" || pathname.startsWith("/juegos/")) return "biblioteca";
+  if (pathname === "/games" || pathname.startsWith("/games/")) return "biblioteca";
   if (pathname === "/salon") return "salon";
   if (pathname === "/login") return "login";
   return null;
@@ -32,7 +32,7 @@ export function Nav() {
           </div>
         </Link>
         <div className="links">
-          <Link href="/" className={cls("biblioteca")}>Biblioteca</Link>
+          <Link href="/games" className={cls("biblioteca")}>Biblioteca</Link>
           <Link href="/salon" className={cls("salon")}>Salón de la Fama</Link>
         </div>
         <div className="spacer"></div>
@@ -55,7 +55,7 @@ export function Nav() {
       <div className={"av-mobile-backdrop" + (open ? " open" : "")} onClick={close}></div>
       <aside className={"av-mobile-panel" + (open ? " open" : "")} inert={!open}>
         <div className="pixel neon-cyan mb-4 text-[11px]">MENÚ</div>
-        <Link href="/" className={cls("biblioteca")} onClick={close}>Biblioteca</Link>
+        <Link href="/games" className={cls("biblioteca")} onClick={close}>Biblioteca</Link>
         <Link href="/salon" className={cls("salon")} onClick={close}>Salón de la Fama</Link>
         <Link href="/login" className={cls("login")} onClick={close}>
           {user ? "Cuenta" : "Iniciar Sesión"}
