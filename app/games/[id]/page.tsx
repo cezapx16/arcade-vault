@@ -13,7 +13,7 @@ const BTN_COLOR = { cyan: "", green: "", magenta: "magenta", yellow: "yellow" } 
 
 // params se lee dentro de <Suspense>: con Partial Prefetching el App Shell es
 // común a todos los juegos y no puede depender de la URL.
-export default function GameDetailPage({ params }: PageProps<"/juegos/[id]">) {
+export default function GameDetailPage({ params }: PageProps<"/games/[id]">) {
   return (
     <Suspense fallback={<ScreenLoading />}>
       <GameDetail params={params} />
@@ -57,7 +57,7 @@ async function GameDetail({ params }: { params: Promise<{ id: string }> }) {
           </div>
         </div>
         <div className="detail-actions">
-          <Link href={`/juegos/${game.id}/jugar`} className={("btn lg pulse text-center " + BTN_COLOR[game.color]).trim()}>
+          <Link href={`/games/${game.id}/play`} className={("btn lg pulse text-center " + BTN_COLOR[game.color]).trim()}>
             JUGAR AHORA
           </Link>
           <Link href="/salon" className="btn ghost lg text-center">

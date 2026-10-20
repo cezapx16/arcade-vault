@@ -72,7 +72,7 @@ export function GamePlayer({ game }: { game: Game }) {
             {paused ? "REANUDAR" : "PAUSA"}
           </button>
           <button className="btn magenta" onClick={() => setOver(true)}>FIN</button>
-          <Link href={`/juegos/${game.id}`} className="btn ghost text-center">SALIR</Link>
+          <Link href={`/games/${game.id}`} className="btn ghost text-center">SALIR</Link>
         </div>
       </div>
 

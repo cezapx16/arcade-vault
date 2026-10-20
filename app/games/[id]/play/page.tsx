@@ -8,8 +8,8 @@ export function generateStaticParams() {
   return GAMES.map((g) => ({ id: g.id }));
 }
 
-// params se lee dentro de <Suspense> (ver /juegos/[id]/page.tsx).
-export default function PlayPage({ params }: PageProps<"/juegos/[id]/jugar">) {
+// params se lee dentro de <Suspense> (ver /games/[id]/page.tsx).
+export default function PlayPage({ params }: PageProps<"/games/[id]/play">) {
   return (
     <Suspense fallback={<ScreenLoading />}>
       <Player params={params} />

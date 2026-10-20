@@ -4,12 +4,12 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { signIn } from "@/lib/session";
 
-type Mode = "login" | "register";
+export type Mode = "login" | "register";
 
 // Sesión de prueba: no hay validación real, cualquier envío inicia sesión.
-export function AuthCard() {
+export function AuthCard({ initialMode = "login" }: { initialMode?: Mode }) {
   const router = useRouter();
-  const [mode, setMode] = useState<Mode>("login");
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [username, setUsername] = useState("");
 
   const enter = (name: string) => {
