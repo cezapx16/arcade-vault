@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ContactForm } from "@/components/about/contact-form";
 import { HighlightIcon, type HighlightKind } from "@/components/about/highlight-icon";
 import { Reveal } from "@/components/home/reveal";
 
@@ -63,8 +64,7 @@ export default function About() {
             </div>
           </div>
 
-          {/* Hueco temporal: el formulario llega en el paso 5 */}
-          <div className="contact-form" aria-hidden="true"></div>
+          <ContactForm />
         </div>
       </Reveal>
     </div>
