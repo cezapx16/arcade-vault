@@ -1,6 +1,6 @@
 # SPEC 02 — Landing page (Home)
 
-> **Estado:** aprobado 
+> **Estado:** implementado@
 > **Depende de:** SPEC 01
 > **Fecha:** 2026-10-19
 > **Objetivo:** Convertir `/` en la landing page de `references/templates/home-about/home.jsx` y mover la Biblioteca y sus pantallas de juego bajo `/games`.

@@ -38,6 +38,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.template
 !.env.example
 
 # vercel
@@ -49,3 +50,6 @@ next-env.d.ts
 
 # playwright mcp (capturas y logs de verificación)
 /.playwright-mcp/
+
+# claves locales
+keys.md
