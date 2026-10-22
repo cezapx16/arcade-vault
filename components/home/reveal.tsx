@@ -2,9 +2,19 @@
 
 import { useEffect, useRef, type ReactNode } from "react";
 
-// Sección que aparece (.reveal → .in) la primera vez que entra en pantalla.
-export function Reveal({ className = "", children }: { className?: string; children: ReactNode }) {
-  const ref = useRef<HTMLElement>(null);
+// Bloque que aparece (.reveal → .in) la primera vez que entra en pantalla.
+export function Reveal({
+  as: Tag = "section",
+  className = "",
+  "aria-hidden": ariaHidden,
+  children,
+}: {
+  as?: "section" | "div";
+  className?: string;
+  "aria-hidden"?: boolean;
+  children: ReactNode;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const el = ref.current;
@@ -27,8 +37,8 @@ export function Reveal({ className = "", children }: { className?: string; child
   }, []);
 
   return (
-    <section ref={ref} className={("reveal " + className).trim()}>
+    <Tag ref={ref} className={("reveal " + className).trim()} aria-hidden={ariaHidden}>
       {children}
-    </section>
+    </Tag>
   );
 }

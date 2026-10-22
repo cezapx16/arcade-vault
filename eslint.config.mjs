@@ -5,6 +5,12 @@ import nextTs from "eslint-config-next/typescript";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  // Compact code: no blank lines anywhere (template literals are left intact).
+  {
+    rules: {
+      "no-multiple-empty-lines": ["warn", { max: 0, maxBOF: 0, maxEOF: 0 }],
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:
