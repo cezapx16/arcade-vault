@@ -1,6 +1,6 @@
 # SPEC 06 — Leaderboard real y tabla de juegos en Supabase
 
-> **Estado:** Aprobado
+> **Estado:** Implementado
 > **Depende de:** SPEC 04, SPEC 05
 > **Fecha:** 2026-10-27
 > **Objetivo:** Crear las tablas `games` y `scores` en Supabase y que el catálogo, el TOP 10 de cada juego y el Salón de la Fama lean de ellas, guardando cada puntuación al terminar una partida.

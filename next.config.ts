@@ -4,6 +4,9 @@ const nextConfig: NextConfig = {
   /* config options here */
   experimental: {
     agentFeedback: true,
+    // El repo vive en OneDrive, que renombra/bloquea archivos de .next/dev/cache y corrompe
+    // la caché persistente de Turbopack (panic "Unable to open static sorted file").
+    turbopackFileSystemCacheForDev: false,
   },
   cacheComponents: true,
   partialPrefetching: true,
