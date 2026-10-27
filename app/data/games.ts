@@ -1,6 +1,5 @@
 export type GameCategory = "ARCADE" | "PUZZLE" | "SHOOTER" | "VERSUS";
 export type GameColor = "cyan" | "magenta" | "yellow" | "green";
-
 export type Game = {
   id: string;
   title: string;
@@ -9,10 +8,10 @@ export type Game = {
   cat: GameCategory;
   cover: `cover-${string}`;
   color: GameColor;
-  best: number;
-  plays: string;
 };
-
+// Juego con las estadísticas calculadas en Supabase (vista game_stats).
+export type GameWithStats = Game & { best: number; plays: number };
+// Respaldo del catálogo cuando Supabase no está disponible y fuente del seed.
 export const GAMES: Game[] = [
   {
     id: "bloque-buster",
@@ -22,8 +21,6 @@ export const GAMES: Game[] = [
     cat: "ARCADE",
     cover: "cover-bricks",
     color: "cyan",
-    best: 28450,
-    plays: "12.4K",
   },
   {
     id: "caida",
@@ -33,8 +30,6 @@ export const GAMES: Game[] = [
     cat: "PUZZLE",
     cover: "cover-tetro",
     color: "magenta",
-    best: 184220,
-    plays: "31.8K",
   },
   {
     id: "serpentina",
@@ -44,8 +39,6 @@ export const GAMES: Game[] = [
     cat: "ARCADE",
     cover: "cover-snake",
     color: "green",
-    best: 7820,
-    plays: "9.1K",
   },
   {
     id: "gloton",
@@ -55,8 +48,6 @@ export const GAMES: Game[] = [
     cat: "ARCADE",
     cover: "cover-glot",
     color: "yellow",
-    best: 96400,
-    plays: "27.2K",
   },
   {
     id: "invasores",
@@ -66,8 +57,6 @@ export const GAMES: Game[] = [
     cat: "SHOOTER",
     cover: "cover-invaders",
     color: "green",
-    best: 54190,
-    plays: "18.0K",
   },
   {
     id: "rocas",
@@ -77,8 +66,6 @@ export const GAMES: Game[] = [
     cat: "SHOOTER",
     cover: "cover-rocas",
     color: "yellow",
-    best: 41200,
-    plays: "15.6K",
   },
   {
     id: "ranaria",
@@ -88,8 +75,6 @@ export const GAMES: Game[] = [
     cat: "ARCADE",
     cover: "cover-rana",
     color: "green",
-    best: 18900,
-    plays: "6.4K",
   },
   {
     id: "duelo-pixel",
@@ -99,13 +84,12 @@ export const GAMES: Game[] = [
     cat: "VERSUS",
     cover: "cover-duelo",
     color: "cyan",
-    best: 24,
-    plays: "4.2K",
   },
 ];
-
-export const CATS: ("TODOS" | GameCategory)[] = ["TODOS", "ARCADE", "PUZZLE", "SHOOTER", "VERSUS"];
-
-export function getGame(id: string): Game | undefined {
-  return GAMES.find((g) => g.id === id);
-}
+export const CATS: ("TODOS" | GameCategory)[] = [
+  "TODOS",
+  "ARCADE",
+  "PUZZLE",
+  "SHOOTER",
+  "VERSUS",
+];

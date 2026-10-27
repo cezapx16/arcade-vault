@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { GAMES, getGame } from "@/app/data/games";
-import { Leaderboard } from "@/components/leaderboard";
+import { Leaderboard, LeaderboardSkeleton } from "@/components/leaderboard";
 import { ScreenLoading } from "@/components/screen-loading";
+import { formatPlays, getGame, getGames } from "@/lib/data/games";
 
-export function generateStaticParams() {
-  return GAMES.map((g) => ({ id: g.id }));
+export async function generateStaticParams() {
+  const games = await getGames();
+  return games.map((g) => ({ id: g.id }));
 }
 
 const BTN_COLOR = { cyan: "", green: "", magenta: "magenta", yellow: "yellow" } as const;
@@ -23,7 +24,7 @@ export default function GameDetailPage({ params }: PageProps<"/games/[id]">) {
 
 async function GameDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const game = getGame(id);
+  const game = await getGame(id);
   if (!game) notFound();
 
   return (
@@ -32,7 +33,9 @@ async function GameDetail({ params }: { params: Promise<{ id: string }> }) {
         <div className="detail-cover">
           <div className={"cover-bg " + game.cover}></div>
         </div>
-        <Leaderboard gameId={game.id} />
+        <Suspense fallback={<LeaderboardSkeleton />}>
+          <Leaderboard gameId={game.id} />
+        </Suspense>
       </div>
 
       <div className="detail-info">
@@ -49,7 +52,7 @@ async function GameDetail({ params }: { params: Promise<{ id: string }> }) {
           </div>
           <div>
             <div className="l">Partidas</div>
-            <div className="v">{game.plays}</div>
+            <div className="v">{formatPlays(game.plays)}</div>
           </div>
           <div>
             <div className="l">Categoría</div>

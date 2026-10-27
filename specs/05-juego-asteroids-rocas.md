@@ -1,6 +1,6 @@
 # SPEC 05 — Juego Asteroids real en ROCAS
 
-> **Estado:** Aprobado
+> **Estado:** Implementado 
 > **Depende de:** SPEC 01, SPEC 02
 > **Fecha:** 2026-10-26
 > **Objetivo:** Portar el Asteroids de `references/02-asteroids/` a TypeScript y hacerlo jugable en `/games/rocas/play`, integrado con el HUD, la pausa y el modal de fin de partida de la plataforma.

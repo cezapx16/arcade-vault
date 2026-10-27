@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { GAMES } from "@/app/data/games";
 import { HOME_STATS, RECENT_SCORES, TOP_PLAYERS } from "@/app/data/home";
 import { FeatureIcon, type FeatureKind } from "@/components/home/feature-icon";
 import { FloatingSilhouettes } from "@/components/home/floating-silhouettes";
 import { MiniCard } from "@/components/home/mini-card";
 import { Reveal } from "@/components/home/reveal";
+import { getGames } from "@/lib/data/games";
 
 export const metadata: Metadata = {
   title: "Arcade Vault · Portal Retro",
@@ -18,7 +18,8 @@ const FEATURES: { i: FeatureKind; t: string; d: string; c: string }[] = [
   { i: "ROCKET", t: "SIEMPRE CRECIENDO", d: "Agregamos nuevos juegos constantemente. Vuelve seguido, siempre habrá algo nuevo que jugar.", c: "green" },
 ];
 
-export default function Home() {
+export default async function Home() {
+  const games = await getGames();
   return (
     <div className="home fade-in">
       {/* HERO */}
@@ -75,7 +76,7 @@ export default function Home() {
           <div className="section-rule"></div>
         </div>
         <div className="mini-rail">
-          {GAMES.slice(0, 6).map((g) => (
+          {games.slice(0, 6).map((g) => (
             <MiniCard key={g.id} game={g} />
           ))}
         </div>

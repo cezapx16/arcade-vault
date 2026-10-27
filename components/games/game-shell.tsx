@@ -1,10 +1,9 @@
 "use client";
-
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
+import { submitScore, type SubmitScoreResult } from "@/app/actions/scores";
 import type { Game } from "@/app/data/games";
-import { saveScore, useUser } from "@/lib/session";
-
+import { useUser } from "@/lib/session";
 type GameShellProps = {
   game: Game;
   hud: { score: number; lives: number; level: number };
@@ -15,7 +14,6 @@ type GameShellProps = {
   onRestart: () => void; // botón JUGAR DE NUEVO del modal
   children: ReactNode; // contenido de .crt-screen
 };
-
 // Capa de presentación compartida por todos los juegos: HUD, CRT, pausa y modal de fin.
 // El estado de la partida lo lleva quien la usa; aquí solo vive el nombre y el guardado.
 export function GameShell({
@@ -32,20 +30,30 @@ export function GameShell({
   // null = el jugador aún no ha escrito nada: se muestra el usuario o INVITADO.
   const [typedName, setTypedName] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
-
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const name = typedName ?? user?.name ?? "INVITADO";
   const { score, lives, level } = hud;
-
   const restart = () => {
     setSaved(false);
+    setSaveError(null);
     onRestart();
   };
-
-  const save = () => {
-    saveScore({ game: game.id, score, name });
-    setSaved(true);
+  const save = async () => {
+    if (saving) return;
+    setSaving(true);
+    setSaveError(null);
+    let result: SubmitScoreResult;
+    try {
+      result = await submitScore({ gameId: game.id, name, score });
+    } catch {
+      // Fallo de red al llamar a la Server Action.
+      result = { ok: false, error: "NO SE PUDO GUARDAR" };
+    }
+    setSaving(false);
+    if (result.ok) setSaved(true);
+    else setSaveError(result.error);
   };
-
   return (
     <div className="av-player fade-in">
       <div className="player-hud">
@@ -83,7 +91,6 @@ export function GameShell({
           </Link>
         </div>
       </div>
-
       <div className="crt">
         <div className="crt-screen">
           {children}
@@ -104,7 +111,6 @@ export function GameShell({
           <span>CARGA · 1MB</span>
         </div>
       </div>
-
       {over && (
         <div className="modal-bd">
           <div
@@ -117,19 +123,32 @@ export function GameShell({
             <div className="final-label">PUNTUACIÓN FINAL</div>
             <div className="final">{score.toLocaleString("es-ES")}</div>
             {!saved ? (
-              <div className="input-row">
-                <input
-                  value={name}
-                  onChange={(e) =>
-                    setTypedName(e.target.value.toUpperCase().slice(0, 10))
-                  }
-                  placeholder="TUS INICIALES"
-                  aria-label="Tus iniciales"
-                />
-                <button className="btn yellow" onClick={save}>
-                  GUARDAR PUNTUACIÓN
-                </button>
-              </div>
+              <>
+                <div className="input-row">
+                  <input
+                    disabled={saving}
+                    value={name}
+                    onChange={(e) =>
+                      setTypedName(e.target.value.toUpperCase().slice(0, 10))
+                    }
+                    placeholder="TUS INICIALES"
+                    aria-label="Tus iniciales"
+                  />
+                  <button
+                    className="btn yellow"
+                    onClick={save}
+                    disabled={saving}
+                    aria-busy={saving}
+                  >
+                    {saving ? "GUARDANDO…" : "GUARDAR PUNTUACIÓN"}
+                  </button>
+                </div>
+                {saveError && (
+                  <div className="toast-error" role="alert">
+                    ▸ {saveError}
+                  </div>
+                )}
+              </>
             ) : (
               <div className="toast-saved">▸ PUNTUACIÓN GUARDADA_</div>
             )}

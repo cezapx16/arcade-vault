@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRef, type MouseEvent } from "react";
-import type { Game } from "@/app/data/games";
+import type { Game, GameWithStats } from "@/app/data/games";
 
 const BTN_COLOR: Record<Game["color"], string> = {
   cyan: "",
@@ -11,7 +11,7 @@ const BTN_COLOR: Record<Game["color"], string> = {
   yellow: "yellow",
 };
 
-export function GameCard({ game }: { game: Game }) {
+export function GameCard({ game }: { game: GameWithStats }) {
   const tiltRef = useRef<HTMLAnchorElement>(null);
 
   const onMove = (e: MouseEvent) => {

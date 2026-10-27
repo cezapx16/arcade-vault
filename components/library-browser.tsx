@@ -1,14 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { CATS, GAMES } from "@/app/data/games";
+import { CATS, type GameWithStats } from "@/app/data/games";
 import { GameCard } from "@/components/game-card";
 
-export function LibraryBrowser() {
+export function LibraryBrowser({ games }: { games: GameWithStats[] }) {
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<(typeof CATS)[number]>("TODOS");
 
-  const filtered = GAMES.filter(
+  const filtered = games.filter(
     (g) => (cat === "TODOS" || g.cat === cat) && g.title.toLowerCase().includes(q.toLowerCase()),
   );
 
