@@ -8,5 +8,10 @@ export function createPublicClient(): SupabaseClient<Database> | null {
   if (!env) return null;
   return createClient<Database>(env.url, env.publishableKey, {
     auth: { persistSession: false, autoRefreshToken: false },
+    // Dentro de "use cache" Next guarda cada fetch en .next/cache/fetch-cache y lo reutiliza
+    // entre builds. La caché la llevan las funciones "use cache"; las peticiones van siempre a red.
+    global: {
+      fetch: (input, init) => fetch(input, { ...init, cache: "no-store" }),
+    },
   });
 }
