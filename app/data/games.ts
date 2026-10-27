@@ -1,6 +1,5 @@
 export type GameCategory = "ARCADE" | "PUZZLE" | "SHOOTER" | "VERSUS";
 export type GameColor = "cyan" | "magenta" | "yellow" | "green";
-
 export type Game = {
   id: string;
   title: string;
@@ -12,7 +11,11 @@ export type Game = {
   best: number;
   plays: string;
 };
-
+// Juego con las estadísticas calculadas en Supabase (vista game_stats).
+export type GameWithStats = Omit<Game, "best" | "plays"> & {
+  best: number;
+  plays: number;
+};
 export const GAMES: Game[] = [
   {
     id: "bloque-buster",
@@ -103,9 +106,13 @@ export const GAMES: Game[] = [
     plays: "4.2K",
   },
 ];
-
-export const CATS: ("TODOS" | GameCategory)[] = ["TODOS", "ARCADE", "PUZZLE", "SHOOTER", "VERSUS"];
-
+export const CATS: ("TODOS" | GameCategory)[] = [
+  "TODOS",
+  "ARCADE",
+  "PUZZLE",
+  "SHOOTER",
+  "VERSUS",
+];
 export function getGame(id: string): Game | undefined {
   return GAMES.find((g) => g.id === id);
 }
