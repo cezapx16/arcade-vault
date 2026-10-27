@@ -673,6 +673,12 @@ a { color: inherit; text-decoration: none; }
   background: radial-gradient(120% 90% at 50% 50%, transparent 60%, rgba(0,0,0,0.65));
   pointer-events: none;
 }
+/* Canvas de juegos reales: buffer 800×600 (×dpr) escalado al 4:3 de .crt-screen */
+.game-canvas {
+  position: absolute; inset: 0;
+  display: block;
+  width: 100%; height: 100%;
+}
 .crt-content {
   position: absolute; inset: 0;
   display: flex; align-items: center; justify-content: center;
