@@ -1,4 +1,5 @@
 import { cacheLife, cacheTag } from "next/cache";
+import { formatScoreDate } from "@/lib/data/format";
 import { createPublicClient } from "@/lib/supabase/public";
 export type LeaderboardRow = {
   rank: number;
@@ -7,13 +8,6 @@ export type LeaderboardRow = {
   date: string; // dd/mm/aaaa
 };
 export type Leaderboard = LeaderboardRow[] | null; // null = RANKING NO DISPONIBLE
-// timestamptz → dd/mm/aaaa (UTC)
-export function formatScoreDate(iso: string): string {
-  const d = new Date(iso);
-  const day = String(d.getUTCDate()).padStart(2, "0");
-  const mon = String(d.getUTCMonth() + 1).padStart(2, "0");
-  return `${day}/${mon}/${d.getUTCFullYear()}`;
-}
 // Mejor puntuación de cada jugador en un juego, ordenada por posición.
 export async function getLeaderboard(
   gameId: string,
