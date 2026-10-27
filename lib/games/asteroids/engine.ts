@@ -1,4 +1,5 @@
 import {
+  GLOW,
   H,
   MAX_DT,
   PALETTE,
@@ -14,6 +15,7 @@ import {
   Asteroid,
   Bullet,
   dist,
+  glow,
   Particle,
   PowerUp,
   rand,
@@ -126,11 +128,11 @@ export function createAsteroidsGame(
     ship.reset();
     spawnAsteroids(3 + level);
   }
-  function explode(x: number, y: number, count = 8) {
-    for (let i = 0; i < count; i++) particles.push(new Particle(x, y));
+  function explode(x: number, y: number, count = 8, rgb?: string) {
+    for (let i = 0; i < count; i++) particles.push(new Particle(x, y, rgb));
   }
   function killShip() {
-    explode(ship.x, ship.y, 14);
+    explode(ship.x, ship.y, 14, PALETTE.shipParticle);
     ship.dead = true;
     lives--;
     if (lives <= 0) {
@@ -221,11 +223,14 @@ export function createAsteroidsGame(
     ship.draw(c);
     // Indicador del triple disparo: es jugabilidad, no HUD.
     if (ship.tripleShot > 0) {
+      c.save();
+      glow(c, PALETTE.powerUp, GLOW.indicator);
       c.fillStyle = PALETTE.powerUp;
       c.font = "15px monospace";
       c.textAlign = "left";
       c.textBaseline = "alphabetic";
       c.fillText(`3x  ${ship.tripleShot.toFixed(1)}s`, 14, 26);
+      c.restore();
     }
   }
   // ── Loop ──

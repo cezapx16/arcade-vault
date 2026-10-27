@@ -24,13 +24,25 @@ export const BULLET_SPEED = 520;
 export const BULLET_TTL = 1.1;
 export const RESPAWN_DELAY = 2;
 export const MAX_DT = 0.05;
-// Paleta del original (blanco). El canvas no lee variables CSS, por eso van en hex.
+// Paleta neón de la plataforma: hex de los tokens de app/globals.css (el canvas no lee variables CSS).
+// Como en la portada de ROCAS, la nave es lo único amarillo; lo que mata es cian y lo que se recoge, magenta.
 export const PALETTE = {
   bg: "#000",
-  ship: "#fff",
-  flame: "rgba(255, 130, 0, 0.85)",
-  asteroid: "#fff",
-  bullet: "#fff",
-  powerUp: "#0ff",
-  particle: "255,255,255", // rgb para rgba con alpha
+  ship: "#f5ff00", // --yellow
+  flame: "#ff006e", // --magenta
+  asteroid: "#00f5ff", // --cyan
+  bullet: "#e6e9ff", // --ink, con halo amarillo de la nave
+  powerUp: "#ff006e", // --magenta
+  particle: "0,245,255", // rgb de --cyan, para rgba con alpha
+  shipParticle: "245,255,0", // rgb de --yellow: la explosión de la nave
+} as const;
+// Radio del glow (shadowBlur) en px lógicos; glow() lo escala por el devicePixelRatio.
+export const GLOW = {
+  ship: 14,
+  flame: 10,
+  asteroid: 8,
+  bullet: 8,
+  powerUp: 16,
+  particle: 0, // sin glow: con ~150 partículas a dpr 2 el frame pasa de ~0,7 ms a ~6 ms
+  indicator: 6,
 } as const;

@@ -1,6 +1,7 @@
 import {
   BULLET_SPEED,
   BULLET_TTL,
+  GLOW,
   H,
   PALETTE,
   POWERUP_TTL,
@@ -27,6 +28,13 @@ export const rand = (min: number, max: number) =>
 export const randInt = (min: number, max: number) =>
   Math.floor(rand(min, max + 1));
 export type Keys = Record<string, boolean>;
+// Halo neón. shadowBlur no sigue la transformación del contexto, así que se escala a mano
+// por la escala actual (el dpr; hypot la mantiene igual aunque haya rotación).
+export function glow(ctx: CanvasRenderingContext2D, color: string, blur: number) {
+  const m = ctx.getTransform();
+  ctx.shadowColor = color;
+  ctx.shadowBlur = blur * Math.hypot(m.a, m.b);
+}
 // ── Bullet ──
 export class Bullet {
   x: number;
@@ -49,10 +57,13 @@ export class Bullet {
     if (this.ttl <= 0) this.dead = true;
   }
   draw(ctx: CanvasRenderingContext2D) {
+    ctx.save();
+    glow(ctx, PALETTE.ship, GLOW.bullet);
     ctx.fillStyle = PALETTE.bullet;
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
     ctx.fill();
+    ctx.restore();
   }
 }
 // ── Asteroid ──
@@ -102,6 +113,7 @@ export class Asteroid {
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(this.rot);
+    glow(ctx, PALETTE.asteroid, GLOW.asteroid);
     ctx.strokeStyle = PALETTE.asteroid;
     ctx.lineWidth = 1.5;
     ctx.lineJoin = "round";
@@ -143,16 +155,20 @@ export class PowerUp {
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(Math.PI / 4);
+    glow(ctx, PALETTE.powerUp, GLOW.powerUp);
     ctx.strokeStyle = PALETTE.powerUp;
     ctx.lineWidth = 2;
     const r = this.radius * pulse;
     ctx.strokeRect(-r, -r, r * 2, r * 2);
     ctx.restore();
+    ctx.save();
+    glow(ctx, PALETTE.powerUp, GLOW.powerUp);
     ctx.fillStyle = PALETTE.powerUp;
     ctx.font = "bold 12px monospace";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText("3x", this.x, this.y);
+    ctx.restore();
   }
 }
 // ── Ship ──
@@ -223,6 +239,7 @@ export class Ship {
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(this.angle);
+    glow(ctx, PALETTE.ship, GLOW.ship);
     ctx.strokeStyle = PALETTE.ship;
     ctx.lineWidth = 1.5;
     ctx.lineJoin = "round";
@@ -240,6 +257,7 @@ export class Ship {
       ctx.moveTo(-8, -4);
       ctx.lineTo(-8 - rand(6, 14), 0);
       ctx.lineTo(-8, 4);
+      glow(ctx, PALETTE.flame, GLOW.flame);
       ctx.strokeStyle = PALETTE.flame;
       ctx.stroke();
     }
@@ -254,8 +272,11 @@ export class Particle {
   vy: number;
   life: number;
   ttl: number;
+  rgb: string;
   dead = false;
-  constructor(x: number, y: number) {
+  // rgb: color de la explosión ("r,g,b"); por defecto el de los asteroides.
+  constructor(x: number, y: number, rgb: string = PALETTE.particle) {
+    this.rgb = rgb;
     this.x = x;
     this.y = y;
     const angle = rand(0, Math.PI * 2);
@@ -273,11 +294,15 @@ export class Particle {
   }
   draw(ctx: CanvasRenderingContext2D) {
     const alpha = this.ttl / this.life;
-    ctx.strokeStyle = `rgba(${PALETTE.particle},${alpha.toFixed(2)})`;
+    const color = `rgba(${this.rgb},${alpha.toFixed(2)})`;
+    ctx.save();
+    if (GLOW.particle > 0) glow(ctx, color, GLOW.particle);
+    ctx.strokeStyle = color;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(this.x, this.y);
     ctx.lineTo(this.x - this.vx * 0.05, this.y - this.vy * 0.05);
     ctx.stroke();
+    ctx.restore();
   }
 }
