@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { Leaderboard } from "@/components/leaderboard";
+import { Leaderboard, LeaderboardSkeleton } from "@/components/leaderboard";
 import { ScreenLoading } from "@/components/screen-loading";
 import { formatPlays, getGame, getGames } from "@/lib/data/games";
 
@@ -33,7 +33,9 @@ async function GameDetail({ params }: { params: Promise<{ id: string }> }) {
         <div className="detail-cover">
           <div className={"cover-bg " + game.cover}></div>
         </div>
-        <Leaderboard gameId={game.id} />
+        <Suspense fallback={<LeaderboardSkeleton />}>
+          <Leaderboard gameId={game.id} />
+        </Suspense>
       </div>
 
       <div className="detail-info">
