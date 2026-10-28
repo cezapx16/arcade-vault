@@ -56,7 +56,17 @@ export function clearLines(board: Board) {
   }
   return cleared;
 }
-// Dibuja la celda (x, y) de una rejilla cuyo origen está en (ox, oy).
+// shadowBlur no sigue a la transformación del contexto: se escala a mano por el devicePixelRatio.
+export function glow(
+  ctx: CanvasRenderingContext2D,
+  color: string,
+  blur: number,
+) {
+  const m = ctx.getTransform();
+  ctx.shadowColor = color;
+  ctx.shadowBlur = blur * Math.hypot(m.a, m.b);
+}
+// Dibuja la celda (x, y) de una rejilla cuyo origen está en (ox, oy), con glow opcional.
 export function drawBlock(
   ctx: CanvasRenderingContext2D,
   ox: number,
@@ -66,15 +76,22 @@ export function drawBlock(
   colorIndex: number,
   size: number,
   alpha = 1,
+  blur = 0,
 ) {
   if (!colorIndex) return;
+  const color = PALETTE.pieces[colorIndex]!;
   const px = ox + x * size;
   const py = oy + y * size;
+  ctx.save();
   ctx.globalAlpha = alpha;
-  ctx.fillStyle = PALETTE.pieces[colorIndex]!;
+  if (blur) glow(ctx, color, blur);
+  ctx.fillStyle = color;
   ctx.fillRect(px + 1, py + 1, size - 2, size - 2);
-  // highlight
+  // Los filos no llevan glow: solo el cuerpo del bloque ilumina.
+  ctx.shadowBlur = 0;
   ctx.fillStyle = PALETTE.highlight;
-  ctx.fillRect(px + 1, py + 1, size - 2, 4);
-  ctx.globalAlpha = 1;
+  ctx.fillRect(px + 1, py + 1, size - 2, 3);
+  ctx.fillStyle = PALETTE.shade;
+  ctx.fillRect(px + 1, py + size - 4, size - 2, 3);
+  ctx.restore();
 }

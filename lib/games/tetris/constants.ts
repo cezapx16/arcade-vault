@@ -73,29 +73,34 @@ export const LINE_SCORES = [0, 100, 300, 500, 800]; // × nivel
 export const KICKS = [0, -1, 1, -2, 2];
 export const GHOST_ALPHA = 0.2;
 export const MAX_DT = 50; // ms: límite del dt antes de sumarlo a dropAccum
-// Colores originales de game.js y style.css (tema oscuro); la paleta neón llega en el paso 5.
+// Paleta neón de la plataforma: hex de los tokens de app/globals.css (el canvas no lee variables CSS).
+// Lo único que brilla siempre es el borde magenta (el color de CAÍDA) y la pieza que cae; lo fijado se apaga.
+// Z y J toman el naranja y el violeta de la portada cover-tetro: bronce e ink-dim quedaban mates junto al neón.
 export const PALETTE = {
-  bg: "#0f0f17",
-  board: "#1a1a25",
-  grid: "#22222e",
-  border: "#2a2a3a",
-  highlight: "rgba(255,255,255,0.12)",
+  bg: "#000",
+  board: "#07070d", // un punto sobre el negro para separar el pozo del fondo
+  grid: "rgba(255,255,255,0.06)", // --line-2
+  border: "#ff006e", // --magenta (color de CAÍDA)
+  nextBox: "rgba(255,0,110,0.35)", // --magenta atenuado: el recuadro acompaña sin competir con el pozo
+  highlight: "rgba(255,255,255,0.35)", // filo superior de cada bloque
+  shade: "rgba(0,0,0,0.3)", // filo inferior de cada bloque
   pieces: [
     null,
-    "#4dd0e1", // I
-    "#ffd54f", // O
-    "#ba68c8", // T
-    "#81c784", // S
-    "#e57373", // Z
-    "#90caf9", // J
-    "#ffb74d", // L
-    "#9e9e9e", // N (tuerca)
+    "#00f5ff", // I — --cyan
+    "#f5ff00", // O — --yellow
+    "#ff006e", // T — --magenta
+    "#00ff88", // S — --green
+    "#ff7700", // Z — naranja de cover-tetro
+    "#aa00ff", // J — violeta de cover-tetro
+    "#ffcf3a", // L — --gold
+    "#c7d0e0", // N (tuerca) — --silver: metal
   ],
-  label: "#555570",
-  text: "#e0e0e0",
+  label: "#8a8fb5", // --ink-dim
+  text: "#e6e9ff", // --ink
 } as const;
-// shadowBlur en px lógicos; 0 = sin glow.
+// Radio del glow (shadowBlur) en px lógicos; glow() lo escala por el devicePixelRatio.
 export const GLOW = {
-  piece: 0,
-  border: 0,
+  piece: 12, // pieza que cae y pieza siguiente
+  border: 14, // borde del pozo
+  locked: 0, // sin glow: hasta 200 shadowBlur por frame (ver Riesgos de la spec)
 } as const;

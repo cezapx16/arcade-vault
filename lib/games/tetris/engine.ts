@@ -6,6 +6,7 @@ import {
   CONTROLS,
   CONTROLS_Y,
   GHOST_ALPHA,
+  GLOW,
   H,
   KICKS,
   LINE_SCORES,
@@ -27,6 +28,7 @@ import {
   createBoard,
   drawBlock,
   ghostY,
+  glow,
   randomPiece,
   rotateCW,
   type Board,
@@ -191,15 +193,20 @@ export function createTetrisGame(
       c.lineTo(BOARD_X + bw, BOARD_Y + row * CELL);
     }
     c.stroke();
+    // Tubo de neón magenta: lo único que brilla siempre en la pantalla.
+    c.save();
+    glow(c, PALETTE.border, GLOW.border);
     c.strokeStyle = PALETTE.border;
     c.lineWidth = 2;
     c.strokeRect(BOARD_X - 1, BOARD_Y - 1, bw + 2, bh + 2);
+    c.restore();
   }
   function drawPiece(
     c: CanvasRenderingContext2D,
     piece: Piece,
     y: number,
     alpha = 1,
+    blur = 0,
   ) {
     for (let r = 0; r < piece.shape.length; r++)
       for (let col = 0; col < piece.shape[r].length; col++)
@@ -212,6 +219,7 @@ export function createTetrisGame(
           piece.shape[r][col],
           CELL,
           alpha,
+          blur,
         );
   }
   function drawPanel(c: CanvasRenderingContext2D) {
@@ -224,7 +232,7 @@ export function createTetrisGame(
     };
     // SIGUIENTE: centrada en su recuadro con los desplazamientos de drawNext()
     label("SIGUIENTE", NEXT_LABEL_Y);
-    c.strokeStyle = PALETTE.border;
+    c.strokeStyle = PALETTE.nextBox;
     c.lineWidth = 1;
     c.strokeRect(PANEL_X + 0.5, NEXT_BOX_Y + 0.5, NEXT_BOX - 1, NEXT_BOX - 1);
     const shape = next.shape;
@@ -240,6 +248,8 @@ export function createTetrisGame(
           offY + r,
           shape[r][col],
           CELL,
+          1,
+          GLOW.piece,
         );
     // LÍNEAS
     label("LÍNEAS", LINES_LABEL_Y);
@@ -263,9 +273,19 @@ export function createTetrisGame(
     drawBoard(c);
     for (let r = 0; r < ROWS; r++)
       for (let col = 0; col < COLS; col++)
-        drawBlock(c, BOARD_X, BOARD_Y, col, r, board[r][col], CELL);
+        drawBlock(
+          c,
+          BOARD_X,
+          BOARD_Y,
+          col,
+          r,
+          board[r][col],
+          CELL,
+          1,
+          GLOW.locked,
+        );
     drawPiece(c, current, ghostY(board, current), GHOST_ALPHA);
-    drawPiece(c, current, current.y);
+    drawPiece(c, current, current.y, 1, GLOW.piece);
     drawPanel(c);
   }
   // ── Loop ──
