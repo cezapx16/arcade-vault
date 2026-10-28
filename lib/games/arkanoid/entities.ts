@@ -1,6 +1,6 @@
 import {
   EXPLOSION_DURATION,
-  EXPLOSION_PHASES,
+  EXPLOSION_FRAMES,
   GLOW,
   PALETTE,
 } from "./constants";
@@ -24,44 +24,72 @@ export function glow(
   ctx.shadowColor = color;
   ctx.shadowBlur = blur * Math.hypot(m.a, m.b);
 }
+// Mezcla un hex #rrggbb con blanco (t = 0 → color, t = 1 → blanco).
+function tint(hex: string, t: number) {
+  const n = parseInt(hex.slice(1), 16);
+  const mix = (c: number) => Math.round(c + (255 - c) * t);
+  return `rgb(${mix(n >> 16)},${mix((n >> 8) & 255)},${mix(n & 255)})`;
+}
+// Bloque como tubo de neón apagado: cristal tintado, contorno encendido y filo superior claro.
 export function drawBlock(ctx: CanvasRenderingContext2D, block: Block) {
   const color = PALETTE.blocks[block.color];
+  const x = block.x + 2;
+  const y = block.y + 2;
+  const w = block.w - 4;
+  const h = block.h - 4;
   ctx.save();
   if (GLOW.block) glow(ctx, color, GLOW.block);
+  ctx.globalAlpha = PALETTE.blockFillAlpha;
   ctx.fillStyle = color;
-  ctx.fillRect(block.x + 1, block.y + 1, block.w - 2, block.h - 2);
+  ctx.fillRect(x, y, w, h);
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
+  ctx.fillStyle = PALETTE.blockEdge;
+  ctx.fillRect(x + 2, y + 2, w - 4, 2);
   ctx.restore();
 }
+// Paleta como tubo de neón cyan con núcleo blanco.
 export function drawPaddle(ctx: CanvasRenderingContext2D, paddle: Rect) {
+  const r = paddle.h / 2;
   ctx.save();
-  if (GLOW.paddle) glow(ctx, PALETTE.paddle, GLOW.paddle);
+  glow(ctx, PALETTE.paddle, GLOW.paddle);
   ctx.fillStyle = PALETTE.paddle;
-  ctx.fillRect(paddle.x, paddle.y, paddle.w, paddle.h);
-  ctx.restore();
-}
-export function drawBall(ctx: CanvasRenderingContext2D, ball: Rect) {
-  ctx.save();
-  if (GLOW.ball) glow(ctx, PALETTE.ball, GLOW.ball);
-  ctx.fillStyle = PALETTE.ball;
   ctx.beginPath();
-  ctx.arc(ball.x + ball.w / 2, ball.y + ball.h / 2, ball.w / 2, 0, Math.PI * 2);
+  ctx.roundRect(paddle.x, paddle.y, paddle.w, paddle.h, r);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = PALETTE.paddleCore;
+  ctx.beginPath();
+  ctx.roundRect(paddle.x + r, paddle.y + r - 2, paddle.w - 2 * r, 4, 2);
   ctx.fill();
   ctx.restore();
 }
-// 4 fases como los frames del spritesheet: el rectángulo del bloque crece y se desvanece.
+// Pelota como círculo brillante con halo cyan.
+export function drawBall(ctx: CanvasRenderingContext2D, ball: Rect) {
+  ctx.save();
+  glow(ctx, PALETTE.ballGlow, GLOW.ball);
+  ctx.fillStyle = PALETTE.ball;
+  ctx.beginPath();
+  ctx.arc(ball.x + ball.w / 2, ball.y + ball.h / 2, ball.w / 2 - 1, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+// 4 fases como los frames del spritesheet: el bloque destella, se hincha y se apaga con glow.
 export function drawExplosion(ctx: CanvasRenderingContext2D, exp: Explosion) {
   const phase = Math.min(
-    Math.floor((exp.elapsed / EXPLOSION_DURATION) * EXPLOSION_PHASES),
-    EXPLOSION_PHASES - 1,
+    Math.floor((exp.elapsed / EXPLOSION_DURATION) * EXPLOSION_FRAMES.length),
+    EXPLOSION_FRAMES.length - 1,
   );
-  const grow = 1 + phase * 0.15;
-  const w = exp.w * grow;
-  const h = exp.h * grow;
+  const { scale, alpha, flash } = EXPLOSION_FRAMES[phase];
   const color = PALETTE.blocks[exp.color];
+  const w = exp.w * scale;
+  const h = exp.h * scale;
   ctx.save();
-  ctx.globalAlpha = 1 - phase / EXPLOSION_PHASES;
-  if (GLOW.explosion) glow(ctx, color, GLOW.explosion);
-  ctx.fillStyle = color;
+  ctx.globalAlpha = alpha;
+  glow(ctx, color, GLOW.explosion);
+  ctx.fillStyle = flash ? tint(color, flash) : color;
   ctx.fillRect(exp.x + (exp.w - w) / 2, exp.y + (exp.h - h) / 2, w, h);
   ctx.restore();
 }

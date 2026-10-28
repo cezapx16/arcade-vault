@@ -21,27 +21,40 @@ export const START_LIVES = 3;
 export const SPEED_STEP = 1.1; // multiplicador por nivel a partir del 6
 export const MAX_SPEED = 2.0;
 export const EXPLOSION_DURATION = 150; // ms
-export const EXPLOSION_PHASES = 4;
 export const MAX_DT = 50; // ms: límite del dt, único cambio sobre la física del original
-// Paso 2: colores con los nombres CSS del original. La paleta neón se fija en el paso 4.
+// Paleta neón de la plataforma: hex de los tokens de app/globals.css (el canvas no lee variables CSS).
+// Los nombres de color del original se conservan en levels.ts; solo cambia el hex al que apuntan.
+// Lo que brilla es lo que se mueve (paleta, pelota, explosiones); los bloques son tubos de neón apagados:
+// cristal tintado con un filo encendido, sin shadowBlur.
 export const PALETTE = {
   bg: "#000",
-  paddle: "#fff",
-  ball: "#fff",
+  paddle: "#00f5ff", // --cyan (color de BLOQUE BUSTER)
+  paddleCore: "#e6fdff", // núcleo blanco del tubo de neón
+  ball: "#e6e9ff", // --ink
+  ballGlow: "#00f5ff", // halo cyan: la pelota pertenece a la paleta
+  blockFillAlpha: 0.22, // cristal tintado del bloque
+  blockEdge: "rgba(255,255,255,0.45)", // filo superior encendido
   blocks: {
-    red: "red",
-    yellow: "yellow",
-    cyan: "cyan",
-    magenta: "magenta",
-    hotpink: "hotpink",
-    green: "green",
-    gray: "gray",
+    red: "#ff7700", // naranja de cover-tetro: --bronze (#d97a3a) quedaba mate junto al neón
+    yellow: "#f5ff00", // --yellow
+    cyan: "#00f5ff", // --cyan
+    magenta: "#ff006e", // --magenta
+    hotpink: "#b44dff", // violeta de cover-tetro, aclarado: --gold se confundía con --yellow (filas contiguas en la pirámide)
+    green: "#00ff88", // --green
+    gray: "#c7d0e0", // --silver
   },
 } as const;
 // Radio del glow (shadowBlur) en px lógicos; glow() lo escala por el devicePixelRatio.
 export const GLOW = {
-  paddle: 0,
-  ball: 0,
-  block: 0,
-  explosion: 0,
+  paddle: 16,
+  ball: 14,
+  block: 0, // sin glow: 60 shadowBlur por frame (ver Riesgos de la spec); el filo encendido hace de neón
+  explosion: 18,
 } as const;
+// Explosión: una fase cada 37,5 ms. El bloque se hincha, se aclara y se apaga.
+export const EXPLOSION_FRAMES = [
+  { scale: 1.0, alpha: 1.0, flash: 0.6 }, // destello casi blanco
+  { scale: 1.15, alpha: 0.75, flash: 0.25 },
+  { scale: 1.3, alpha: 0.45, flash: 0 },
+  { scale: 1.45, alpha: 0.2, flash: 0 },
+] as const;
