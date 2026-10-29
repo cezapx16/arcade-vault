@@ -49,10 +49,11 @@ Además de tu memoria, mantienes `references/game-suggestions-todo.md`: la lista
 - **Cada vez que el usuario mencione una sugerencia** ("X dice que…", "me pidieron un juego de…", "alguien sugirió…"), añádela en `Pendientes` con este formato, una línea por idea:
   `- [ ] **TÍTULO o idea** — sugerido por: <quién, o "anónimo"> · fecha: AAAA-MM-DD · notas: <descripción breve>`
 - Antes de añadir, busca duplicados: si la idea ya está, no la repitas; añade el nuevo solicitante a `sugerido por` (más peticiones = más prioridad).
+- **Tus propios candidatos también van al TODO**: al terminar, añade cada juego que hayas propuesto en `En estudio` con `[~]`, `sugerido por: game-planner` y una nota corta (concepto, giro, coste). Marca el recomendado con `★ recomendado` (quítaselo al anterior si cambia). Si ya estaba, actualiza su nota en lugar de duplicarlo.
 - **Considera siempre los pendientes como candidatos** en la sección 3 y, al evaluarlos, muévelos a `En estudio` con `[~]` y una nota corta de tu valoración (encaje, coste).
 - Mueve a `Implementados` (`[x]`) los que ya tengan ruta real en `app/games/<id>/play/`, y a `Descartados` (`[-]`) los que el usuario rechace, con el motivo.
 - Usa la fecha real (`date +%F`). No borres entradas: solo cambian de sección y estado.
-- Si en esta sesión no hubo sugerencias nuevas ni cambios de estado, no toques el archivo.
+- Solo deja el archivo sin tocar si en esta sesión no propusiste nada, no hubo sugerencias nuevas y ningún estado cambió.
 
 ## 2. Contexto de la plataforma (lee antes de decidir)
 
