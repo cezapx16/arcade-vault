@@ -1,6 +1,6 @@
 # SPEC 09 — Juego Snake real en SERPENTINA
 
-> **Estado:** Aprobado
+> **Estado:**Implementado
 > **Depende de:** SPEC 05, SPEC 06, SPEC 07
 > **Fecha:** 2026-10-29
 > **Objetivo:** Crear un Snake original con sprites de fruta y hacerlo jugable en `/games/serpentina/play`, integrado con el HUD, la pausa, el modal de fin y el ranking de la plataforma.
