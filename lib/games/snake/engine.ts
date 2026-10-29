@@ -297,7 +297,11 @@ export function createSnakeGame(
       pausedFrom = "ready";
     }
   };
-  loadFruits().then(onLoaded, () => onLoaded(null));
+  // La carga empieza en el siguiente frame: si React crea y destruye el motor en el mismo
+  // render (hidratación en un dispositivo táctil), la imagen ni se pide.
+  const loadId = requestAnimationFrame(() =>
+    loadFruits().then(onLoaded, () => onLoaded(null)),
+  );
   return {
     pause() {
       if (destroyed || phase === "paused" || phase === "gameover") return;
@@ -330,6 +334,7 @@ export function createSnakeGame(
     destroy() {
       if (destroyed) return;
       destroyed = true;
+      cancelAnimationFrame(loadId);
       stop();
       window.removeEventListener("keydown", onKeyDown);
     },
