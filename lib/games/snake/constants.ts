@@ -37,16 +37,39 @@ export const FRUIT_DRAW_H = 28; // alto del sprite dentro de la celda de 30
 export const BONUS_BAR = { w: 24, h: 3 } as const;
 export const FLASH_MS = 150;
 export const MAX_DT = 50; // ms: límite del dt del frame
-// Paleta: hex de los tokens de app/globals.css (el canvas no lee variables CSS).
+// Paleta neón de la plataforma: hex de los tokens de app/globals.css (el canvas no lee variables CSS).
+// Lo único que brilla de verdad es la serpiente: un tubo de luz verde con núcleo casi blanco
+// que se enfría hacia la cola. La rejilla y la pared van en el mismo verde, pero apagadas;
+// la fruta es pixel art sin glow, y solo la piña bonus lleva un halo dorado que late.
 export const PALETTE = {
   bg: "#000",
-  grid: "rgba(255,255,255,0.06)", // --line-2
+  grid: "rgba(0,255,136,0.05)", // --green muy apagado: la rejilla es parte del mundo de la serpiente
   border: "#00ff88", // --green (color de SERPENTINA)
+  borderAlpha: 0.55, // la pared se ve, pero no compite con la serpiente
   head: "#00ff88", // --green
+  headCore: "#f2fff8", // punto más caliente del tubo
   body: "#00ff88", // --green
+  bodyCore: "#b9ffdd", // núcleo del tubo, verde casi blanco
   bonusGlow: "#ffcf3a", // --gold
   bonusBar: "#ffcf3a", // --gold
   flash: "#e6e9ff", // --ink
+  flashGlow: "#00ff88", // --green
   prompt: "#8a8fb5", // --ink-dim
   fruitFallback: "#ff006e", // --magenta: círculo si fruits.png no carga
+} as const;
+// shadowBlur por elemento (px lógicos).
+export const GLOW = {
+  tube: 14, // una sola pasada sobre todo el cuerpo
+  head: 18,
+  border: 8,
+  bar: 6,
+  flash: 10,
+} as const;
+// Tubo de neón de la serpiente (px lógicos; la celda mide 30).
+export const TUBE = {
+  width: 18,
+  core: 5,
+  headCore: 4.5,
+  haloAlpha: 0.45,
+  tailAlpha: 0.35, // brillo del último tramo (la cabeza es 1)
 } as const;

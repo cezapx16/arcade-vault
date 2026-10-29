@@ -25,6 +25,7 @@ import {
 import {
   drawBoard,
   drawBonusBar,
+  drawBonusGlow,
   drawFlash,
   drawFruit,
   drawSnake,
@@ -216,6 +217,7 @@ export function createSnakeGame(
     if (loaded) {
       drawFruit(c, fruitsImg, fruit.cell, fruit.sprite);
       if (bonus) {
+        drawBonusGlow(c, bonus.cell, bonus.remaining);
         drawFruit(c, fruitsImg, bonus.cell, BONUS_FRUIT);
         drawBonusBar(c, bonus.cell, bonus.remaining / BONUS_MS);
       }
