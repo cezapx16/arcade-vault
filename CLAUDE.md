@@ -25,6 +25,8 @@ Current state (specs 01–09): visual MVP (home, library, game detail, player, H
   - `/spec-impl` — implement an approved spec step by step. It creates the branch `spec-NN-slug` automatically (`specs/.spec-config.yml` → `AutoCreateBranch: true`). One commit per step (`spec NN paso X: …`), then ask before continuing.
   - `/add-game` — project skill: writes the spec to port or add a playable game (from `references/started-games/` or a description). Its `integracion.md` is the contract every game must follow — read it before touching games.
   - `/frontend-design` — always use it to design UI (pages, components, and canvas palettes/glow).
+- Subagents (in `.claude/agents/`):
+  - `game-planner` — plans and decides which game fits the platform next (catalog in Supabase + code, `integracion.md` contract, category/color balance), proposes 3–5 candidates and recommends one to take to `/add-game`. It writes no code or specs. It keeps its own project memory (`memory: project`) of what it has suggested and its status (`sugerido`/`elegido`/`descartado`/`implementado`), and maintains `references/game-suggestions-todo.md` with games other people suggest. Use it when the user asks what game to add or relays someone's game suggestion (pass the full suggestion and who made it in the prompt).
 - Merge to `main` via PR per spec.
 
 ## Commands
@@ -83,3 +85,4 @@ A `PostToolUse` hook (`.claude/hooks/format-and-lint.mjs`) runs after every Writ
 
 - `references/templates/` — original JSX/HTML design prototypes the screens were built from.
 - `references/started-games/` — original vanilla-JS games to port; `references/source-assets/` — raw assets (e.g. Snake fruit sprites).
+- Exceptions (living docs, editable): `references/implemented-games.md` — catalog snapshot from the `games` table (real vs. simulated); `references/game-suggestions-todo.md` — TODO of people's game suggestions, maintained by `game-planner`.
