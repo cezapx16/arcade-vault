@@ -35,7 +35,7 @@ export const GAMES: Game[] = [
     id: "serpentina",
     title: "SERPENTINA",
     short: "Crece sin morder tu propia cola.",
-    long: "Una serpiente de luz recorre la grilla buscando núcleos magenta. Cada bocado la alarga y la hace más veloz. Un movimiento en falso y se devora a sí misma.",
+    long: "Una serpiente de luz recorre la grilla devorando fruta pixelada. Cada bocado la alarga y la hace más veloz. Un movimiento en falso y se devora a sí misma.",
     cat: "ARCADE",
     cover: "cover-snake",
     color: "green",
