@@ -1,4 +1,4 @@
-import type { SkinId } from "@/lib/games/skins";
+import { DEFAULT_SKIN, type SkinId } from "@/lib/games/skins";
 import {
   BOARD_X,
   BOARD_Y,
@@ -7,7 +7,6 @@ import {
   CONTROLS,
   CONTROLS_Y,
   GHOST_ALPHA,
-  GLOW,
   H,
   KICKS,
   LINE_SCORES,
@@ -18,9 +17,9 @@ import {
   NEXT_BOX_Y,
   NEXT_LABEL_Y,
   NEXT_PAD,
-  PALETTE,
   PANEL_X,
   ROWS,
+  SKINS,
   W,
 } from "./constants";
 import {
@@ -47,7 +46,7 @@ export type TetrisGame = {
   restart: () => void; // init() y vuelve a emitir score/lives/level iniciales
   end: () => void; // fuerza game over con la puntuación actual → onLives(0) + onGameOver
   destroy: () => void; // cancela rAF y quita listeners; idempotente
-  setSkin: (id: SkinId) => void; // skins: pendiente (no-op)
+  setSkin: (id: SkinId) => void; // cambia colores y glow desde el siguiente frame, sin tocar la partida
 };
 type State = "playing" | "paused" | "gameover";
 // Teclas de juego cuya acción por defecto (scroll, activar botón enfocado) se bloquea.
@@ -64,6 +63,7 @@ const isTypingTarget = (t: EventTarget | null) =>
 export function createTetrisGame(
   canvas: HTMLCanvasElement,
   callbacks: TetrisCallbacks,
+  skinId: SkinId = DEFAULT_SKIN,
 ): TetrisGame {
   const maybeCtx = canvas.getContext("2d");
   if (!maybeCtx) throw new Error("Canvas 2D no disponible");
@@ -73,6 +73,8 @@ export function createTetrisGame(
   canvas.width = W * dpr;
   canvas.height = H * dpr;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  // Skin actual: solo lo lee el dibujo.
+  let skin = SKINS[skinId];
   // ── Estado del juego ──
   let board: Board = createBoard();
   let current: Piece = randomPiece();
@@ -181,9 +183,9 @@ export function createTetrisGame(
   function drawBoard(c: CanvasRenderingContext2D) {
     const bw = COLS * CELL;
     const bh = ROWS * CELL;
-    c.fillStyle = PALETTE.board;
+    c.fillStyle = skin.palette.board;
     c.fillRect(BOARD_X, BOARD_Y, bw, bh);
-    c.strokeStyle = PALETTE.grid;
+    c.strokeStyle = skin.palette.grid;
     c.lineWidth = 0.5;
     c.beginPath();
     for (let col = 1; col < COLS; col++) {
@@ -197,8 +199,8 @@ export function createTetrisGame(
     c.stroke();
     // Tubo de neón magenta: lo único que brilla siempre en la pantalla.
     c.save();
-    glow(c, PALETTE.border, GLOW.border);
-    c.strokeStyle = PALETTE.border;
+    glow(c, skin.palette.border, skin.glow.border);
+    c.strokeStyle = skin.palette.border;
     c.lineWidth = 2;
     c.strokeRect(BOARD_X - 1, BOARD_Y - 1, bw + 2, bh + 2);
     c.restore();
@@ -214,6 +216,7 @@ export function createTetrisGame(
       for (let col = 0; col < piece.shape[r].length; col++)
         drawBlock(
           c,
+          skin.palette,
           BOARD_X,
           BOARD_Y,
           piece.x + col,
@@ -228,13 +231,13 @@ export function createTetrisGame(
     c.textAlign = "left";
     c.textBaseline = "alphabetic";
     const label = (text: string, y: number) => {
-      c.fillStyle = PALETTE.label;
+      c.fillStyle = skin.palette.label;
       c.font = "13px monospace";
       c.fillText(text, PANEL_X, y);
     };
     // SIGUIENTE: centrada en su recuadro con los desplazamientos de drawNext()
     label("SIGUIENTE", NEXT_LABEL_Y);
-    c.strokeStyle = PALETTE.nextBox;
+    c.strokeStyle = skin.palette.nextBox;
     c.lineWidth = 1;
     c.strokeRect(PANEL_X + 0.5, NEXT_BOX_Y + 0.5, NEXT_BOX - 1, NEXT_BOX - 1);
     const shape = next.shape;
@@ -244,6 +247,7 @@ export function createTetrisGame(
       for (let col = 0; col < shape[r].length; col++)
         drawBlock(
           c,
+          skin.palette,
           PANEL_X + NEXT_PAD,
           NEXT_BOX_Y + NEXT_PAD,
           offX + col,
@@ -251,11 +255,11 @@ export function createTetrisGame(
           shape[r][col],
           CELL,
           1,
-          GLOW.piece,
+          skin.glow.piece,
         );
     // LÍNEAS
     label("LÍNEAS", LINES_LABEL_Y);
-    c.fillStyle = PALETTE.text;
+    c.fillStyle = skin.palette.text;
     c.font = "bold 22px monospace";
     c.fillText(String(lines), PANEL_X, LINES_VALUE_Y);
     // CONTROLES
@@ -263,20 +267,21 @@ export function createTetrisGame(
     c.font = "12px monospace";
     CONTROLS.forEach(([keys, action], i) => {
       const y = CONTROLS_Y + 28 + i * 24;
-      c.fillStyle = PALETTE.text;
+      c.fillStyle = skin.palette.text;
       c.fillText(keys, PANEL_X, y);
-      c.fillStyle = PALETTE.label;
+      c.fillStyle = skin.palette.label;
       c.fillText(action, PANEL_X + 80, y);
     });
   }
   function draw(c: CanvasRenderingContext2D) {
-    c.fillStyle = PALETTE.bg;
+    c.fillStyle = skin.palette.bg;
     c.fillRect(0, 0, W, H);
     drawBoard(c);
     for (let r = 0; r < ROWS; r++)
       for (let col = 0; col < COLS; col++)
         drawBlock(
           c,
+          skin.palette,
           BOARD_X,
           BOARD_Y,
           col,
@@ -284,10 +289,10 @@ export function createTetrisGame(
           board[r][col],
           CELL,
           1,
-          GLOW.locked,
+          skin.glow.locked,
         );
     drawPiece(c, current, ghostY(board, current), GHOST_ALPHA);
-    drawPiece(c, current, current.y, 1, GLOW.piece);
+    drawPiece(c, current, current.y, 1, skin.glow.piece);
     drawPanel(c);
   }
   // ── Loop ──
@@ -354,7 +359,13 @@ export function createTetrisGame(
   emit();
   start();
   return {
-    setSkin() {},
+    setSkin(id) {
+      if (destroyed) return;
+      skin = SKINS[id];
+      // En pausa el loop está parado: se repinta una vez para que el cambio se vea ya.
+      // Tras el game over no se redibuja, como en el original.
+      if (state === "paused") draw(ctx);
+    },
     pause() {
       if (destroyed || state !== "playing") return;
       state = "paused";
