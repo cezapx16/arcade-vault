@@ -16,12 +16,18 @@
 | 2026-10-30 | bloque-buster | neon    | ok     | 5.12:1           | sin cambios                                                                                                                      |
 | 2026-10-30 | bloque-buster | retro   | ok     | 4.60:1           | LCD verde 8-bit (tipo consola portátil), 7 escalones para los 7 bloques                                                          |
 | 2026-10-30 | bloque-buster | pastel  | ok     | 11.26:1          | caramelo translúcido, paleta cian pastel                                                                                         |
-| 2026-10-30 | serpentina    | clasico | ok     | 5.15:1           | sin original: colores planos del paso 3 de la spec 09, sin glow. Fruta pixel art no se recolorea                                 |
-| 2026-10-30 | serpentina    | neon    | ok     | 4.85:1           | sin cambios (pared con borderAlpha 0.55)                                                                                         |
-| 2026-10-30 | serpentina    | retro   | ok     | 4.37:1           | fósforo ámbar (el juego ya es verde)                                                                                             |
-| 2026-10-30 | serpentina    | pastel  | ok     | 5.86:1           | menta + bonus vainilla                                                                                                           |
+| 2026-10-30 | serpentina    | clasico | ajustado | 5.15:1         | spec 09 paso 3 plano: tailFade 1 (antes se atenuaba a 2.32:1). Fruta pixel art no se recolorea |
+| 2026-10-30 | serpentina    | neon    | ajustado | 3.92:1         | cola 0.35→0.5 (tailFade por skin): la cola medía 2.32:1 y el cuerpo mata; resto sin cambios |
+| 2026-10-30 | serpentina    | retro   | ajustado | 3.60:1         | fósforo ámbar; cola 0.35→0.55 (medía 1.99:1). Pared borderAlpha 0.6 = 4.37:1 |
+| 2026-10-30 | serpentina    | pastel  | ajustado | 3.83:1         | menta + bonus vainilla; cola 0.35→0.5 (medía 2.32:1) |
 
 Familias retro usadas: verde (rocas), ámbar (caida, serpentina), LCD 8-bit verde oliva (bloque-buster).
+
+Contraste: medir también la cola atenuada de serpentina (tailFade), no solo los hex de la paleta.
+
+bloque-buster re-auditado 2026-10-30: los 4 skins siguen ok, mismos mínimos, sin cambios.
+
+- [Agentes en paralelo](parallel-agents-shared-browser.md) — navegador Playwright, localStorage y dev server :3000 compartidos
 
 ## Preferencias del usuario
 
