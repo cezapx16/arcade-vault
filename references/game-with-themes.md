@@ -6,7 +6,7 @@
 
 | Juego     | clasico | neon | retro | pastel | Skins extra | Dark-mode revisado | Última actualización |
 | --------- | ------- | ---- | ----- | ------ | ----------- | ------------------ | -------------------- |
-| asteroids | —       | —    | —     | —      | —           | —                  | —                    |
+| asteroids | ✅      | ✅   | ✅    | ✅     | —           | sí                 | 2026-10-30           |
 | tetris    | —       | —    | —     | —      | —           | —                  | —                    |
 | arkanoid  | —       | —    | —     | —      | —           | —                  | —                    |
 | snake     | —       | —    | —     | —      | —           | —                  | —                    |
