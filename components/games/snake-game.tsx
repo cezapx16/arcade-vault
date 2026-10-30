@@ -18,7 +18,9 @@ export function SnakeGame({ game }: { game: Game }) {
     togglePause,
     end,
     restart,
-  } = useCanvasGame(createSnakeGame, INITIAL_HUD);
+    skin,
+    setSkin,
+  } = useCanvasGame(game.id, createSnakeGame, INITIAL_HUD);
   return (
     <GameShell
       game={game}
@@ -28,6 +30,8 @@ export function SnakeGame({ game }: { game: Game }) {
       onTogglePause={togglePause}
       onEnd={end}
       onRestart={restart}
+      skin={skin}
+      onSkinChange={setSkin}
     >
       <CanvasScreen
         canvasRef={canvasRef}

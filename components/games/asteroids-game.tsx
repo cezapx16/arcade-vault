@@ -18,7 +18,9 @@ export function AsteroidsGame({ game }: { game: Game }) {
     togglePause,
     end,
     restart,
-  } = useCanvasGame(createAsteroidsGame, INITIAL_HUD);
+    skin,
+    setSkin,
+  } = useCanvasGame(game.id, createAsteroidsGame, INITIAL_HUD);
   return (
     <GameShell
       game={game}
@@ -28,6 +30,8 @@ export function AsteroidsGame({ game }: { game: Game }) {
       onTogglePause={togglePause}
       onEnd={end}
       onRestart={restart}
+      skin={skin}
+      onSkinChange={setSkin}
     >
       <CanvasScreen
         canvasRef={canvasRef}

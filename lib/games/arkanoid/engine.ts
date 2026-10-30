@@ -1,3 +1,4 @@
+import type { SkinId } from "@/lib/games/skins";
 import {
   BALL_SIZE,
   BASE_BALL_VX,
@@ -41,6 +42,7 @@ export type ArkanoidGame = {
   restart: () => void; // paleta centrada, nivel 1, 3 vidas, 0 puntos; reemite los valores iniciales
   end: () => void; // fuerza game over con la puntuación actual → onLives(0) + onGameOver
   destroy: () => void; // cancela rAF y quita listeners; idempotente
+  setSkin: (id: SkinId) => void; // skins: pendiente (no-op)
 };
 type State = "playing" | "paused" | "gameover";
 type Keys = { ArrowLeft: boolean; ArrowRight: boolean };
@@ -261,6 +263,7 @@ export function createArkanoidGame(
   emit();
   start();
   return {
+    setSkin() {},
     pause() {
       if (destroyed || state !== "playing") return;
       state = "paused";

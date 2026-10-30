@@ -1,11 +1,14 @@
 "use client";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import type { SkinId } from "@/lib/games/skins";
+import { useSkin } from "@/lib/skin";
 export type CanvasEngine = {
   pause: () => void;
   resume: () => void;
   restart: () => void;
   end: () => void;
   destroy: () => void;
+  setSkin: (id: SkinId) => void; // cambia colores y glow en caliente, sin reiniciar la partida
 };
 export type HudCallbacks = {
   onScore: (score: number) => void;
@@ -29,12 +32,22 @@ const getNoKeyboard = () => window.matchMedia(NO_KEYBOARD_QUERY).matches;
 const getServerNoKeyboard = () => false;
 // Monta un motor de canvas en el CRT y expone su estado para el shell.
 // `create` debe ser estable (una función de módulo), o el motor se recrea en cada render.
+// El skin se guarda por juego (`gameId`) y se aplica en caliente con engine.setSkin.
 export function useCanvasGame(
-  create: (canvas: HTMLCanvasElement, callbacks: HudCallbacks) => CanvasEngine,
+  gameId: string,
+  create: (
+    canvas: HTMLCanvasElement,
+    callbacks: HudCallbacks,
+    skin: SkinId,
+  ) => CanvasEngine,
   initialHud: Hud,
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<CanvasEngine | null>(null);
+  const [skin, setSkin] = useSkin(gameId);
+  // El motor nace con el skin actual, pero el skin no es dependencia de su creación:
+  // cambiarlo no debe recrear el motor ni reiniciar la partida.
+  const skinRef = useRef(skin);
   const [hud, setHud] = useState(initialHud);
   const [paused, setPaused] = useState(false);
   const [over, setOver] = useState(false);
@@ -47,18 +60,26 @@ export function useCanvasGame(
   useEffect(() => {
     const canvas = canvasRef.current;
     if (noKeyboard || !canvas) return;
-    const engine = create(canvas, {
-      onScore: (score) => setHud((h) => ({ ...h, score })),
-      onLives: (lives) => setHud((h) => ({ ...h, lives })),
-      onLevel: (level) => setHud((h) => ({ ...h, level })),
-      onGameOver: () => setOver(true),
-    });
+    const engine = create(
+      canvas,
+      {
+        onScore: (score) => setHud((h) => ({ ...h, score })),
+        onLives: (lives) => setHud((h) => ({ ...h, lives })),
+        onLevel: (level) => setHud((h) => ({ ...h, level })),
+        onGameOver: () => setOver(true),
+      },
+      skinRef.current,
+    );
     engineRef.current = engine;
     return () => {
       engine.destroy();
       engineRef.current = null;
     };
   }, [create, noKeyboard]);
+  useEffect(() => {
+    skinRef.current = skin;
+    engineRef.current?.setSkin(skin);
+  }, [skin]);
   // Única fuente de verdad de la pausa: botón, P/Escape y cambio de pestaña.
   useEffect(() => {
     const engine = engineRef.current;
@@ -97,6 +118,8 @@ export function useCanvasGame(
     togglePause: () => setPaused((p) => !p),
     end: () => engineRef.current?.end(),
     restart,
+    skin,
+    setSkin,
   };
 }
 // Aviso "REQUIERE TECLADO" en táctil o el canvas del juego.

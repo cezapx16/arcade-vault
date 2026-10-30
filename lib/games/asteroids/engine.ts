@@ -1,3 +1,4 @@
+import type { SkinId } from "@/lib/games/skins";
 import {
   GLOW,
   H,
@@ -34,6 +35,7 @@ export type AsteroidsGame = {
   restart: () => void; // initGame() y vuelve a emitir score/lives/level iniciales
   end: () => void; // fuerza game over con la puntuación actual → onGameOver
   destroy: () => void; // cancela rAF y quita listeners; idempotente
+  setSkin: (id: SkinId) => void; // skins: pendiente (no-op)
 };
 type State = "playing" | "dead" | "gameover";
 // Teclas de juego cuya acción por defecto (scroll, activar botón enfocado) se bloquea.
@@ -271,6 +273,7 @@ export function createAsteroidsGame(
   emit();
   start();
   return {
+    setSkin() {},
     pause() {
       if (destroyed || paused) return;
       paused = true;

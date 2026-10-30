@@ -18,7 +18,9 @@ export function TetrisGame({ game }: { game: Game }) {
     togglePause,
     end,
     restart,
-  } = useCanvasGame(createTetrisGame, INITIAL_HUD);
+    skin,
+    setSkin,
+  } = useCanvasGame(game.id, createTetrisGame, INITIAL_HUD);
   return (
     <GameShell
       game={game}
@@ -28,6 +30,8 @@ export function TetrisGame({ game }: { game: Game }) {
       onTogglePause={togglePause}
       onEnd={end}
       onRestart={restart}
+      skin={skin}
+      onSkinChange={setSkin}
     >
       <CanvasScreen
         canvasRef={canvasRef}

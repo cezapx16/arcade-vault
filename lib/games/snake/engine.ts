@@ -1,3 +1,4 @@
+import type { SkinId } from "@/lib/games/skins";
 import {
   BOARD_X,
   BOARD_Y,
@@ -52,6 +53,7 @@ export type SnakeGame = {
   restart: () => void; // serpiente inicial, 3 vidas, nivel 1, 0 puntos, fruta nueva; reemite los valores iniciales
   end: () => void; // fuerza game over con la puntuación actual → onLives(0) + onGameOver
   destroy: () => void; // cancela rAF, quita listeners y descarta la carga del sprite; idempotente
+  setSkin: (id: SkinId) => void; // skins: pendiente (no-op)
 };
 type Phase = "loading" | "ready" | "playing" | "paused" | "gameover";
 // Solo WASD, leído por e.code: funciona con Bloq Mayús y con cualquier distribución.
@@ -303,6 +305,7 @@ export function createSnakeGame(
     loadFruits().then(onLoaded, () => onLoaded(null)),
   );
   return {
+    setSkin() {},
     pause() {
       if (destroyed || phase === "paused" || phase === "gameover") return;
       pausedFrom = phase;

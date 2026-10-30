@@ -1,3 +1,4 @@
+import type { SkinId } from "@/lib/games/skins";
 import {
   BOARD_X,
   BOARD_Y,
@@ -46,6 +47,7 @@ export type TetrisGame = {
   restart: () => void; // init() y vuelve a emitir score/lives/level iniciales
   end: () => void; // fuerza game over con la puntuación actual → onLives(0) + onGameOver
   destroy: () => void; // cancela rAF y quita listeners; idempotente
+  setSkin: (id: SkinId) => void; // skins: pendiente (no-op)
 };
 type State = "playing" | "paused" | "gameover";
 // Teclas de juego cuya acción por defecto (scroll, activar botón enfocado) se bloquea.
@@ -352,6 +354,7 @@ export function createTetrisGame(
   emit();
   start();
   return {
+    setSkin() {},
     pause() {
       if (destroyed || state !== "playing") return;
       state = "paused";
