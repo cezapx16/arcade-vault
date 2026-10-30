@@ -27,6 +27,7 @@ Current state (specs 01–09): visual MVP (home, library, game detail, player, H
   - `/frontend-design` — always use it to design UI (pages, components, and canvas palettes/glow).
 - Subagents (in `.claude/agents/`):
   - `game-planner` — plans and decides which game fits the platform next (catalog in Supabase + code, `integracion.md` contract, category/color balance), proposes 3–5 candidates and recommends one to take to `/add-game`. It writes no code or specs. It keeps its own project memory (`memory: project`) of what it has suggested and its status (`sugerido`/`elegido`/`descartado`/`implementado`), and maintains `references/game-suggestions-todo.md` with games other people suggest plus its own candidates (`sugerido por: game-planner`). Use it when the user asks what game to add or relays someone's game suggestion (pass the full suggestion and who made it in the prompt).
+  - `game-jam` — given a theme, designs one original canvas game and writes at least two complete Draft specs (same shape as specs 07–09) plus a `README.md` with open questions in `specs/game-jam/<game-id>/`. It works autonomously (decides with `/add-game`'s recommendations, chooses replace-simulated vs. new game), writes no code, keeps project memory of themes/games it generated, and adds each game to `references/game-suggestions-todo.md` (`sugerido por: game-jam`). Approved jam specs are moved to `specs/NN-…` before `/spec-impl`.
 - Merge to `main` via PR per spec.
 
 ## Commands
