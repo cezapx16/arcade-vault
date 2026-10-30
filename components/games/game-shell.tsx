@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { submitScore, type SubmitScoreResult } from "@/app/actions/scores";
 import type { Game } from "@/app/data/games";
+import { SKIN_IDS, SKIN_LABELS, type SkinId } from "@/lib/games/skins";
 import { useUser } from "@/lib/session";
 type GameShellProps = {
   game: Game;
@@ -12,6 +13,9 @@ type GameShellProps = {
   onTogglePause: () => void;
   onEnd: () => void; // botón FIN
   onRestart: () => void; // botón JUGAR DE NUEVO del modal
+  // Skin del canvas y su selector (se guarda por juego). Sin ellos no hay selector (partida simulada).
+  skin?: SkinId;
+  onSkinChange?: (skin: SkinId) => void;
   children: ReactNode; // contenido de .crt-screen
 };
 // Capa de presentación compartida por todos los juegos: HUD, CRT, pausa y modal de fin.
@@ -24,6 +28,8 @@ export function GameShell({
   onTogglePause,
   onEnd,
   onRestart,
+  skin,
+  onSkinChange,
   children,
 }: GameShellProps) {
   const user = useUser();
@@ -91,6 +97,28 @@ export function GameShell({
           </Link>
         </div>
       </div>
+      {skin && onSkinChange && (
+        <div className="skin-bar" role="group" aria-labelledby="skin-bar-label">
+          <span id="skin-bar-label" className="skin-bar-label">
+            Skin
+          </span>
+          {SKIN_IDS.map((id) => (
+            <button
+              key={id}
+              type="button"
+              className="skin-btn"
+              aria-pressed={skin === id}
+              onClick={(e) => {
+                onSkinChange(id);
+                // Sin foco en el botón: Espacio y las flechas siguen llegando al juego.
+                e.currentTarget.blur();
+              }}
+            >
+              {SKIN_LABELS[id]}
+            </button>
+          ))}
+        </div>
+      )}
       <div className="crt">
         <div className="crt-screen">
           {children}

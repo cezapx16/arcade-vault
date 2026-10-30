@@ -52,7 +52,7 @@ Reglas fijas:
 - Del canvas se quitan el HUD de puntuación, vidas y nivel, los overlays de pausa y "GAME OVER", y el reinicio por tecla. Se queda lo que es jugabilidad (indicadores de power-up, pieza siguiente, etc.).
 - En `gameover` el motor puede seguir animando efectos, pero ignora la entrada y no hace `preventDefault`.
 - Puntuación entera entre 0 y 9.999.999 (lo exigen la Server Action y el `check` de `scores`).
-- Paleta: hex de los tokens de `app/globals.css` en `PALETTE` (el canvas no lee variables CSS), glow con `shadowBlur`, diseñada con `/frontend-design`. Primero se porta con los colores originales y en un paso posterior se aplica la paleta.
+- Paleta: hex de los tokens de `app/globals.css` (el canvas no lee variables CSS), glow con `shadowBlur`, diseñada con `/frontend-design`. Primero se porta con los colores originales y en un paso posterior se aplica la paleta neón. Ambas acaban siendo skins (`clasico` y `neon`) del contrato de **Skins** (abajo); el agente `skin-designer` completa `retro` y `pastel` y verifica el contraste.
 - Assets, si los hay: en `public/games/<id>/`, cargados por el motor y esperados antes de arrancar el loop.
 
 ## 3. Componente (`components/games/<motor>-game.tsx`)
@@ -67,6 +67,23 @@ Reglas fijas:
 Si ya existe un hook compartido para esto (por ejemplo, extraído por una spec de juego anterior), se usa ese en lugar de copiar.
 
 `GameShell` solo pinta score, lives y level. Si el juego necesita otra métrica, la spec decide si se amplía `GameShell` (de forma opcional y sin cambiar el resto de juegos) o se dibuja en el canvas.
+
+### Skins
+
+Todo juego real tiene 4 skins, elegidos por el jugador en el `GameShell` y guardados en `localStorage` (`av_skin_<id>`). Los implementa y audita el agente `skin-designer`.
+
+| Id        | Etiqueta | Contenido                                                       |
+| --------- | -------- | --------------------------------------------------------------- |
+| `clasico` | CLÁSICO  | **Por defecto.** Colores del juego original                     |
+| `neon`    | NEÓN     | Paleta neón de la plataforma                                    |
+| `retro`   | RETRO    | Fósforo CRT (verde/ámbar) o 8-bit, 2–4 tonos, glow ≤ 4          |
+| `pastel`  | PASTEL   | Baja saturación, L ≥ 70 %, siempre sobre fondo oscuro, glow ≤ 6 |
+
+- Tipos compartidos en `lib/games/skins.ts` (`SkinId`, `SKIN_IDS`, `SKIN_LABELS`, `DEFAULT_SKIN`, `contrastRatio`); store en `lib/skin.ts`.
+- `constants.ts` exporta `SKINS: Record<SkinId, { palette: Palette; glow: Glow }>`, con las mismas claves en los 4.
+- La factoría recibe el skin inicial (`create<Motor>Game(canvas, callbacks, skin = DEFAULT_SKIN)`) y el motor expone `setSkin(id)`, que cambia el skin en caliente sin reiniciar la partida.
+- Contraste sobre `palette.bg` y sobre `#0a0a0f`: ≥ 3:1 en elementos de juego, ≥ 4.5:1 en texto de canvas; decorativos exentos. Colores que deben distinguirse no se repiten dentro de un skin.
+- Los assets de imagen no se recolorean.
 
 ## 4. Ruta (`app/games/<id>/play/page.tsx`)
 

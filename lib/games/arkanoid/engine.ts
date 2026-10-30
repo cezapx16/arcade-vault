@@ -1,3 +1,4 @@
+import { DEFAULT_SKIN, type SkinId } from "@/lib/games/skins";
 import {
   BALL_SIZE,
   BASE_BALL_VX,
@@ -12,8 +13,8 @@ import {
   PADDLE,
   PADDLE_CATCH,
   PADDLE_SPEED,
-  PALETTE,
   POINTS_PER_BLOCK,
+  SKINS,
   START_LIVES,
   W,
 } from "./constants";
@@ -41,6 +42,7 @@ export type ArkanoidGame = {
   restart: () => void; // paleta centrada, nivel 1, 3 vidas, 0 puntos; reemite los valores iniciales
   end: () => void; // fuerza game over con la puntuación actual → onLives(0) + onGameOver
   destroy: () => void; // cancela rAF y quita listeners; idempotente
+  setSkin: (id: SkinId) => void; // cambia colores y glow desde el siguiente frame, sin tocar la partida
 };
 type State = "playing" | "paused" | "gameover";
 type Keys = { ArrowLeft: boolean; ArrowRight: boolean };
@@ -50,10 +52,13 @@ const isTypingTarget = (t: EventTarget | null) =>
 export function createArkanoidGame(
   canvas: HTMLCanvasElement,
   callbacks: ArkanoidCallbacks,
+  skinId: SkinId = DEFAULT_SKIN,
 ): ArkanoidGame {
   const maybeCtx = canvas.getContext("2d");
   if (!maybeCtx) throw new Error("Canvas 2D no disponible");
   const ctx: CanvasRenderingContext2D = maybeCtx;
+  // Skin actual: solo lo lee el dibujo.
+  let skin = SKINS[skinId];
   // HiDPI: buffer a resolución física, dibujo en coordenadas lógicas 800×600.
   const dpr = window.devicePixelRatio || 1;
   canvas.width = W * dpr;
@@ -198,12 +203,12 @@ export function createArkanoidGame(
   }
   // ── Draw ── (sin HUD ni overlays: los pinta la plataforma)
   function draw(c: CanvasRenderingContext2D) {
-    c.fillStyle = PALETTE.bg;
+    c.fillStyle = skin.palette.bg;
     c.fillRect(0, 0, W, H);
-    for (const block of blocks) if (block.alive) drawBlock(c, block);
-    for (const exp of explosions) drawExplosion(c, exp);
-    drawPaddle(c, paddle);
-    drawBall(c, ball);
+    for (const block of blocks) if (block.alive) drawBlock(c, block, skin);
+    for (const exp of explosions) drawExplosion(c, exp, skin);
+    drawPaddle(c, paddle, skin);
+    drawBall(c, ball, skin);
   }
   // ── Loop ──
   // En gameover solo se terminan de animar las explosiones que queden.
@@ -261,6 +266,12 @@ export function createArkanoidGame(
   emit();
   start();
   return {
+    setSkin(id) {
+      if (destroyed) return;
+      skin = SKINS[id];
+      // En pausa o tras el game over el loop puede estar parado: se repinta una vez.
+      if (state !== "playing") draw(ctx);
+    },
     pause() {
       if (destroyed || state !== "playing") return;
       state = "paused";

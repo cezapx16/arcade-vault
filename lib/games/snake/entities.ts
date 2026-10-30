@@ -7,12 +7,11 @@ import {
   COLS,
   FLASH_MS,
   FRUIT_DRAW_H,
-  GLOW,
   MIN_TICK,
-  PALETTE,
   ROWS,
   TICK_STEP,
   TUBE,
+  type Skin,
 } from "./constants";
 import { FRUIT_H, FRUITS, type FruitName } from "./sprites";
 export type Cell = { x: number; y: number }; // columna y fila, de 0 a 19
@@ -53,19 +52,22 @@ export function randomFreeCell(taken: Cell[]): Cell | null {
 // ── Dibujo ── (coordenadas de celda → px lógicos del tablero)
 const px = (c: Cell) => ({ x: BOARD_X + c.x * CELL, y: BOARD_Y + c.y * CELL });
 // Oscurece un hex #rrggbb hacia el negro del fondo (k = 1 → igual, k = 0 → negro).
-const dim = (hex: string, k: number) => {
+const dim = (hex: string, k: number, alpha = 1) => {
   const v = parseInt(hex.slice(1), 16);
   const r = Math.round(((v >> 16) & 255) * k);
   const g = Math.round(((v >> 8) & 255) * k);
   const b = Math.round((v & 255) * k);
-  return `rgb(${r},${g},${b})`;
+  return alpha === 1 ? `rgb(${r},${g},${b})` : `rgba(${r},${g},${b},${alpha})`;
 };
 const center = (c: Cell) => ({
   x: BOARD_X + c.x * CELL + CELL / 2,
   y: BOARD_Y + c.y * CELL + CELL / 2,
 });
-export function drawBoard(ctx: CanvasRenderingContext2D) {
-  ctx.strokeStyle = PALETTE.grid;
+export function drawBoard(
+  ctx: CanvasRenderingContext2D,
+  { palette, glow }: Skin,
+) {
+  ctx.strokeStyle = palette.grid;
   ctx.lineWidth = 1;
   ctx.beginPath();
   for (let i = 1; i < COLS; i++) {
@@ -81,18 +83,22 @@ export function drawBoard(ctx: CanvasRenderingContext2D) {
   ctx.stroke();
   // Borde de 2 px dentro del tablero: es la pared que mata. Brilla menos que la serpiente.
   ctx.save();
-  ctx.strokeStyle = PALETTE.border;
-  ctx.globalAlpha = PALETTE.borderAlpha;
-  ctx.shadowColor = PALETTE.border;
-  ctx.shadowBlur = GLOW.border;
+  ctx.strokeStyle = palette.border;
+  ctx.globalAlpha = palette.borderAlpha;
+  ctx.shadowColor = palette.border;
+  ctx.shadowBlur = glow.border;
   ctx.lineWidth = 2;
   ctx.strokeRect(BOARD_X + 1, BOARD_Y + 1, COLS * CELL - 2, ROWS * CELL - 2);
   ctx.restore();
 }
 // La serpiente es un tubo de neón continuo por los centros de sus celdas, con núcleo claro.
-// Se enfría hacia la cola: el brillo baja de 1 a TUBE.tailAlpha.
+// Se enfría hacia la cola: el brillo baja de 1 a palette.tailFade (1 = plano).
 // El glow es una sola pasada sobre todo el trazo, así que no crece con la longitud.
-export function drawSnake(ctx: CanvasRenderingContext2D, snake: Cell[]) {
+export function drawSnake(
+  ctx: CanvasRenderingContext2D,
+  snake: Cell[],
+  { palette, glow }: Skin,
+) {
   if (snake.length === 0) return;
   const pts = snake.map(center);
   const h = pts[0];
@@ -105,10 +111,10 @@ export function drawSnake(ctx: CanvasRenderingContext2D, snake: Cell[]) {
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
   // Halo: un único trazo con shadowBlur.
-  ctx.strokeStyle = PALETTE.body;
+  ctx.strokeStyle = palette.body;
   ctx.globalAlpha = TUBE.haloAlpha;
-  ctx.shadowColor = PALETTE.body;
-  ctx.shadowBlur = GLOW.tube;
+  ctx.shadowColor = palette.body;
+  ctx.shadowBlur = glow.tube;
   ctx.lineWidth = TUBE.width;
   trace();
   ctx.stroke();
@@ -121,25 +127,25 @@ export function drawSnake(ctx: CanvasRenderingContext2D, snake: Cell[]) {
     if (Math.hypot(tail.x - h.x, tail.y - h.y) < CELL) return hex;
     const g = ctx.createLinearGradient(h.x, h.y, tail.x, tail.y);
     g.addColorStop(0, hex);
-    g.addColorStop(1, dim(hex, TUBE.tailAlpha));
+    g.addColorStop(1, dim(hex, palette.tailFade));
     return g;
   };
-  ctx.strokeStyle = fade(PALETTE.body);
+  ctx.strokeStyle = fade(palette.body);
   ctx.lineWidth = TUBE.width;
   ctx.stroke();
-  ctx.strokeStyle = fade(PALETTE.bodyCore);
+  ctx.strokeStyle = fade(palette.bodyCore);
   ctx.lineWidth = TUBE.core;
   ctx.stroke();
   // Cabeza: el punto más caliente del tubo.
   ctx.globalAlpha = 1;
-  ctx.shadowColor = PALETTE.head;
-  ctx.shadowBlur = GLOW.head;
-  ctx.fillStyle = PALETTE.head;
+  ctx.shadowColor = palette.head;
+  ctx.shadowBlur = glow.head;
+  ctx.fillStyle = palette.head;
   ctx.beginPath();
   ctx.arc(h.x, h.y, TUBE.width / 2 + 1, 0, Math.PI * 2);
   ctx.fill();
   ctx.shadowBlur = 0;
-  ctx.fillStyle = PALETTE.headCore;
+  ctx.fillStyle = palette.headCore;
   ctx.beginPath();
   ctx.arc(h.x, h.y, TUBE.headCore, 0, Math.PI * 2);
   ctx.fill();
@@ -152,10 +158,11 @@ export function drawFruit(
   img: HTMLImageElement | null,
   cell: Cell,
   name: FruitName,
+  { palette }: Skin,
 ) {
   const { x, y } = px(cell);
   if (!img) {
-    ctx.fillStyle = PALETTE.fruitFallback;
+    ctx.fillStyle = palette.fruitFallback;
     ctx.beginPath();
     ctx.arc(x + CELL / 2, y + CELL / 2, CELL / 2 - 4, 0, Math.PI * 2);
     ctx.fill();
@@ -182,14 +189,15 @@ export function drawBonusGlow(
   ctx: CanvasRenderingContext2D,
   cell: Cell,
   remaining: number,
+  { palette }: Skin,
 ) {
   const { x, y } = center(cell);
   const speed = remaining < 2000 ? 90 : 260;
   const pulse = 0.5 + 0.5 * Math.sin(remaining / speed);
   const r = CELL * 0.75;
   const g = ctx.createRadialGradient(x, y, 2, x, y, r);
-  g.addColorStop(0, PALETTE.bonusGlow);
-  g.addColorStop(1, "rgba(255,207,58,0)");
+  g.addColorStop(0, palette.bonusGlow);
+  g.addColorStop(1, dim(palette.bonusGlow, 1, 0));
   ctx.save();
   ctx.globalAlpha = 0.35 + 0.35 * pulse;
   ctx.fillStyle = g;
@@ -203,12 +211,13 @@ export function drawBonusBar(
   ctx: CanvasRenderingContext2D,
   cell: Cell,
   fraction: number,
+  { palette, glow }: Skin,
 ) {
   const { x, y } = px(cell);
   ctx.save();
-  ctx.fillStyle = PALETTE.bonusBar;
-  ctx.shadowColor = PALETTE.bonusBar;
-  ctx.shadowBlur = GLOW.bar;
+  ctx.fillStyle = palette.bonusBar;
+  ctx.shadowColor = palette.bonusBar;
+  ctx.shadowBlur = glow.bar;
   ctx.fillRect(
     x + (CELL - BONUS_BAR.w) / 2,
     y + CELL - BONUS_BAR.h,
@@ -218,14 +227,18 @@ export function drawBonusBar(
   ctx.restore();
 }
 // Destello de la celda donde se comió una fruta: un anillo que se abre y se apaga en FLASH_MS.
-export function drawFlash(ctx: CanvasRenderingContext2D, flash: Flash) {
+export function drawFlash(
+  ctx: CanvasRenderingContext2D,
+  flash: Flash,
+  { palette, glow }: Skin,
+) {
   const t = Math.min(flash.elapsed / FLASH_MS, 1);
   const { x, y } = center(flash.cell);
   ctx.save();
   ctx.globalAlpha = 1 - t;
-  ctx.strokeStyle = PALETTE.flash;
-  ctx.shadowColor = PALETTE.flashGlow;
-  ctx.shadowBlur = GLOW.flash;
+  ctx.strokeStyle = palette.flash;
+  ctx.shadowColor = palette.flashGlow;
+  ctx.shadowBlur = glow.flash;
   ctx.lineWidth = 3 - 2 * t;
   ctx.beginPath();
   ctx.arc(x, y, CELL * (0.35 + 0.55 * t), 0, Math.PI * 2);

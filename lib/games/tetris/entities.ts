@@ -1,4 +1,4 @@
-import { COLS, PALETTE, PIECE_TYPES, PIECES, ROWS } from "./constants";
+import { COLS, PIECE_TYPES, PIECES, ROWS, type Palette } from "./constants";
 export type Shape = number[][];
 export type Board = number[][];
 export type Piece = { type: number; shape: Shape; x: number; y: number };
@@ -69,6 +69,7 @@ export function glow(
 // Dibuja la celda (x, y) de una rejilla cuyo origen está en (ox, oy), con glow opcional.
 export function drawBlock(
   ctx: CanvasRenderingContext2D,
+  palette: Palette,
   ox: number,
   oy: number,
   x: number,
@@ -79,7 +80,7 @@ export function drawBlock(
   blur = 0,
 ) {
   if (!colorIndex) return;
-  const color = PALETTE.pieces[colorIndex]!;
+  const color = palette.pieces[colorIndex]!;
   const px = ox + x * size;
   const py = oy + y * size;
   ctx.save();
@@ -89,9 +90,9 @@ export function drawBlock(
   ctx.fillRect(px + 1, py + 1, size - 2, size - 2);
   // Los filos no llevan glow: solo el cuerpo del bloque ilumina.
   ctx.shadowBlur = 0;
-  ctx.fillStyle = PALETTE.highlight;
+  ctx.fillStyle = palette.highlight;
   ctx.fillRect(px + 1, py + 1, size - 2, 3);
-  ctx.fillStyle = PALETTE.shade;
+  ctx.fillStyle = palette.shade;
   ctx.fillRect(px + 1, py + size - 4, size - 2, 3);
   ctx.restore();
 }

@@ -1,14 +1,14 @@
+import { DEFAULT_SKIN, type SkinId } from "@/lib/games/skins";
 import {
-  GLOW,
   H,
   MAX_DT,
-  PALETTE,
   POINTS,
   POWERUP_DROP_CHANCE,
   POWERUP_DURATION,
   POWERUP_GUARANTEED_KILLS,
   RESPAWN_DELAY,
   SAFE_DIST,
+  SKINS,
   W,
 } from "./constants";
 import {
@@ -34,6 +34,7 @@ export type AsteroidsGame = {
   restart: () => void; // initGame() y vuelve a emitir score/lives/level iniciales
   end: () => void; // fuerza game over con la puntuación actual → onGameOver
   destroy: () => void; // cancela rAF y quita listeners; idempotente
+  setSkin: (id: SkinId) => void; // cambia colores y glow desde el siguiente frame, sin tocar la partida
 };
 type State = "playing" | "dead" | "gameover";
 // Teclas de juego cuya acción por defecto (scroll, activar botón enfocado) se bloquea.
@@ -44,6 +45,7 @@ const isTypingTarget = (t: EventTarget | null) =>
 export function createAsteroidsGame(
   canvas: HTMLCanvasElement,
   callbacks: AsteroidsCallbacks,
+  skinId: SkinId = DEFAULT_SKIN,
 ): AsteroidsGame {
   const maybeCtx = canvas.getContext("2d");
   if (!maybeCtx) throw new Error("Canvas 2D no disponible");
@@ -53,6 +55,8 @@ export function createAsteroidsGame(
   canvas.width = W * dpr;
   canvas.height = H * dpr;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  // Skin actual: solo lo lee el dibujo.
+  let skin = SKINS[skinId];
   // ── Input ──
   const keys: Keys = {};
   const justPressed: Keys = {};
@@ -128,11 +132,16 @@ export function createAsteroidsGame(
     ship.reset();
     spawnAsteroids(3 + level);
   }
-  function explode(x: number, y: number, count = 8, rgb?: string) {
+  function explode(
+    x: number,
+    y: number,
+    count = 8,
+    rgb = skin.palette.particle,
+  ) {
     for (let i = 0; i < count; i++) particles.push(new Particle(x, y, rgb));
   }
   function killShip() {
-    explode(ship.x, ship.y, 14, PALETTE.shipParticle);
+    explode(ship.x, ship.y, 14, skin.palette.shipParticle);
     ship.dead = true;
     lives--;
     if (lives <= 0) {
@@ -214,18 +223,18 @@ export function createAsteroidsGame(
   }
   // ── Draw ── (sin HUD ni overlay de GAME OVER: los pinta la plataforma)
   function draw(c: CanvasRenderingContext2D) {
-    c.fillStyle = PALETTE.bg;
+    c.fillStyle = skin.palette.bg;
     c.fillRect(0, 0, W, H);
-    particles.forEach((p) => p.draw(c));
-    asteroids.forEach((a) => a.draw(c));
-    powerUps.forEach((p) => p.draw(c));
-    bullets.forEach((b) => b.draw(c));
-    ship.draw(c);
+    particles.forEach((p) => p.draw(c, skin));
+    asteroids.forEach((a) => a.draw(c, skin));
+    powerUps.forEach((p) => p.draw(c, skin));
+    bullets.forEach((b) => b.draw(c, skin));
+    ship.draw(c, skin);
     // Indicador del triple disparo: es jugabilidad, no HUD.
     if (ship.tripleShot > 0) {
       c.save();
-      glow(c, PALETTE.powerUp, GLOW.indicator);
-      c.fillStyle = PALETTE.powerUp;
+      glow(c, skin.palette.powerUp, skin.glow.indicator);
+      c.fillStyle = skin.palette.powerUp;
       c.font = "15px monospace";
       c.textAlign = "left";
       c.textBaseline = "alphabetic";
@@ -271,6 +280,12 @@ export function createAsteroidsGame(
   emit();
   start();
   return {
+    setSkin(id) {
+      if (destroyed) return;
+      skin = SKINS[id];
+      // En pausa el loop está parado: se repinta una vez para que el cambio se vea ya.
+      if (paused) draw(ctx);
+    },
     pause() {
       if (destroyed || paused) return;
       paused = true;

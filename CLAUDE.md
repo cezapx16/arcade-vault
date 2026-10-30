@@ -25,6 +25,10 @@ Current state (specs 01–09): visual MVP (home, library, game detail, player, H
   - `/spec-impl` — implement an approved spec step by step. It creates the branch `spec-NN-slug` automatically (`specs/.spec-config.yml` → `AutoCreateBranch: true`). One commit per step (`spec NN paso X: …`), then ask before continuing.
   - `/add-game` — project skill: writes the spec to port or add a playable game (from `references/started-games/` or a description). Its `integracion.md` is the contract every game must follow — read it before touching games.
   - `/frontend-design` — always use it to design UI (pages, components, and canvas palettes/glow).
+- Subagents (in `.claude/agents/`):
+  - `game-planner` — plans and decides which game fits the platform next (catalog in Supabase + code, `integracion.md` contract, category/color balance), proposes 3–5 candidates and recommends one to take to `/add-game`. It writes no code or specs. It keeps its own project memory (`memory: project`) of what it has suggested and its status (`sugerido`/`elegido`/`descartado`/`implementado`), and maintains `references/game-suggestions-todo.md` with games other people suggest plus its own candidates (`sugerido por: game-planner`). Use it when the user asks what game to add or relays someone's game suggestion (pass the full suggestion and who made it in the prompt).
+  - `game-jam` — given a theme, designs one original canvas game and writes at least two complete Draft specs (same shape as specs 07–09) plus a `README.md` with open questions in `specs/game-jam/<game-id>/`. It works autonomously (decides with `/add-game`'s recommendations, chooses replace-simulated vs. new game), writes no code, keeps project memory of themes/games it generated, and adds each game to `references/game-suggestions-todo.md` (`sugerido por: game-jam`). Approved jam specs are moved to `specs/NN-…` before `/spec-impl`.
+  - `skin-designer` — audits and implements game skins: every real game must have 4 (`clasico` default with the original colors, `neon` = current palette, `retro`, `pastel`), all readable on the dark background (contrast ≥ 3:1 for game elements, ≥ 4.5:1 for canvas text). Unlike the other agents it edits code (engines, `useCanvasGame`, `GameShell` selector), one commit per game, keeps project memory of each game × skin status, and maintains the status table in `references/game-with-themes.md`.
 - Merge to `main` via PR per spec.
 
 ## Commands
@@ -77,9 +81,11 @@ A `PostToolUse` hook (`.claude/hooks/format-and-lint.mjs`) runs after every Writ
 - Component `components/games/<engine>-game.tsx` — uses the shared `useCanvasGame` hook (`components/games/use-canvas-game.tsx`: engine lifecycle, pause via button/`P`/`Escape`/tab hidden, "REQUIERE TECLADO" on touch devices) and renders `<GameShell>` (`components/games/game-shell.tsx`: CRT, HUD, pause overlay, game-over modal, score saving through `submitScore`).
 - A game that is in the `games` table and uses `GameShell` gets the TOP 10, Hall of Fame tab and stats for free — never create per-game ranking tables, actions or components.
 - Canvas colors are hex copies of the `app/globals.css` tokens (the canvas cannot read CSS variables), with glow via `shadowBlur`. Port with original colors first, apply the neon palette in a later step.
+- Skins (contract in `integracion.md` → Skins, maintained by `skin-designer`): `SKINS: Record<SkinId, { palette, glow }>` in `constants.ts`, engine `setSkin(id)` switches live without restarting, chosen in `GameShell` and stored in `localStorage` `av_skin_<id>`.
 - Game assets go in `public/games/<id>/`; the engine loads them before starting the loop.
 
 ### References (read-only)
 
 - `references/templates/` — original JSX/HTML design prototypes the screens were built from.
 - `references/started-games/` — original vanilla-JS games to port; `references/source-assets/` — raw assets (e.g. Snake fruit sprites).
+- Exceptions (living docs, editable): `references/implemented-games.md` — catalog snapshot from the `games` table (real vs. simulated); `references/game-suggestions-todo.md` — TODO of people's game suggestions, maintained by `game-planner`. `references/game-with-themes.md` — skins status per game, maintained by `skin-designer`.
