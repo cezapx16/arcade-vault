@@ -92,7 +92,7 @@ export function drawBoard(
   ctx.restore();
 }
 // La serpiente es un tubo de neón continuo por los centros de sus celdas, con núcleo claro.
-// Se enfría hacia la cola: el brillo baja de 1 a TUBE.tailAlpha.
+// Se enfría hacia la cola: el brillo baja de 1 a palette.tailFade (1 = plano).
 // El glow es una sola pasada sobre todo el trazo, así que no crece con la longitud.
 export function drawSnake(
   ctx: CanvasRenderingContext2D,
@@ -127,7 +127,7 @@ export function drawSnake(
     if (Math.hypot(tail.x - h.x, tail.y - h.y) < CELL) return hex;
     const g = ctx.createLinearGradient(h.x, h.y, tail.x, tail.y);
     g.addColorStop(0, hex);
-    g.addColorStop(1, dim(hex, TUBE.tailAlpha));
+    g.addColorStop(1, dim(hex, palette.tailFade));
     return g;
   };
   ctx.strokeStyle = fade(palette.body);

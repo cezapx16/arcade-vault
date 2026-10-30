@@ -49,6 +49,7 @@ export type Palette = {
   headCore: string; // punto más caliente del tubo
   body: string;
   bodyCore: string; // núcleo del tubo
+  tailFade: number; // brillo del último tramo (cabeza = 1); la cola mata, así que ≥ 3:1
   bonusGlow: string;
   bonusBar: string;
   flash: string;
@@ -77,6 +78,7 @@ export const SKINS: Record<SkinId, Skin> = {
       headCore: "#00ff88", // plano: sin núcleo
       body: "#00ff88", // spec 09 paso 3 (--green)
       bodyCore: "#00ff88", // plano: sin núcleo
+      tailFade: 1, // plano: sin enfriamiento hacia la cola
       bonusGlow: "#ffcf3a", // spec 09 paso 3 (--gold)
       bonusBar: "#ffcf3a", // spec 09 paso 3 (--gold)
       flash: "#e6e9ff", // spec 09 paso 3 (--ink)
@@ -100,6 +102,7 @@ export const SKINS: Record<SkinId, Skin> = {
       headCore: "#f2fff8", // punto más caliente del tubo
       body: "#00ff88", // --green
       bodyCore: "#b9ffdd", // núcleo del tubo, verde casi blanco
+      tailFade: 0.5, // era 0.35 (TUBE.tailAlpha): la cola bajaba a 2.3:1
       bonusGlow: "#ffcf3a", // --gold
       bonusBar: "#ffcf3a", // --gold
       flash: "#e6e9ff", // --ink
@@ -126,6 +129,7 @@ export const SKINS: Record<SkinId, Skin> = {
       headCore: "#fff8ea",
       body: "#ffb000", // fósforo ámbar
       bodyCore: "#ffd27a", // fósforo ámbar claro
+      tailFade: 0.55, // la cola sigue legible (≥ 3:1)
       bonusGlow: "#ffd27a", // fósforo ámbar claro
       bonusBar: "#ffe9bf", // fósforo ámbar saturado al blanco
       flash: "#fff8ea",
@@ -146,6 +150,7 @@ export const SKINS: Record<SkinId, Skin> = {
       headCore: "#f4fff8",
       body: "#a8ecc0", // menta
       bodyCore: "#e0fbe9", // menta casi blanca
+      tailFade: 0.5, // la cola sigue legible (≥ 3:1)
       bonusGlow: "#fff0a0", // vainilla
       bonusBar: "#fff0a0", // vainilla
       flash: "#f4f1ff", // lavanda casi blanca
@@ -162,5 +167,4 @@ export const TUBE = {
   core: 5,
   headCore: 4.5,
   haloAlpha: 0.45,
-  tailAlpha: 0.35, // brillo del último tramo (la cabeza es 1)
 } as const;
