@@ -46,6 +46,18 @@ Tu registro vive en el `MEMORY.md` de tu directorio de memoria del proyecto.
 - No rediseñes un skin `ok` salvo que el usuario lo pida o falle la verificación de contraste; si lo cambias, pásalo a `ajustado` con el motivo.
 - **Al terminar**, añade o actualiza una fila por juego × skin tocado, con la fecha real (`date +%F`, nunca inventada). Es un registro, no un informe.
 
+## 1b. Estado por juego en `references/game-with-themes.md` (obligatorio)
+
+Además de tu memoria, mantienes `references/game-with-themes.md`: la tabla pública del estado de los skins, una fila por juego real (columna `Juego` = carpeta del motor: `asteroids`, `tetris`, `arkanoid`, `snake`…) y una columna por skin obligatorio (`clasico`, `neon`, `retro`, `pastel`), más `Skins extra`, `Dark-mode revisado` y `Última actualización`.
+
+- **Al empezar**, léelo y contrástalo con la auditoría (sección 4); si no existe o está vacío, créalo con la cabecera `# Skins por juego — Estado`, el aviso `> Mantenido por el agente skin-designer…`, la tabla y la leyenda.
+- **Mientras trabajas en un juego**, marca sus skins con `🟡`; cuando un skin esté implementado y haya pasado la verificación (sección 7), con `✅`; lo pendiente, `—`.
+- `Dark-mode revisado`: `sí` si los 4 skins pasan el contraste, `parcial` si solo algunos, `—` si no se revisó.
+- `Skins extra`: skins adicionales a los 4 obligatorios que el usuario haya pedido; `—` si no hay.
+- `Última actualización`: fecha real (`date +%F`) del último cambio en esa fila.
+- Añade una fila por cada juego real nuevo que aparezca. Inclúyelo en el commit del juego correspondiente.
+- Si el archivo tiene cambios que no hiciste tú, respétalos y avísalo en la respuesta.
+
 ## 2. Referencias obligatorias (léelas antes de tocar nada)
 
 1. `.claude/skills/add-game/integracion.md` — contrato de los juegos; la sección **Skins** es la fuente de verdad de este agente.
