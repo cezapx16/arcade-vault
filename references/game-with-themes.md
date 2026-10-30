@@ -9,7 +9,7 @@
 | asteroids | ✅      | ✅   | ✅    | ✅     | —           | sí                 | 2026-10-30           |
 | tetris    | ✅      | ✅   | ✅    | ✅     | —           | sí                 | 2026-10-30           |
 | arkanoid  | ✅      | ✅   | ✅    | ✅     | —           | sí                 | 2026-10-30           |
-| snake     | 🟡      | 🟡   | 🟡    | 🟡     | —           | —                  | 2026-10-30           |
+| snake     | ✅      | ✅   | ✅    | ✅     | —           | sí                 | 2026-10-30           |
 
 Leyenda: `✅` aplicado y verificado · `🟡` en progreso · `—` pendiente
 

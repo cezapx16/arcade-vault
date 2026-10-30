@@ -1,4 +1,4 @@
-import type { SkinId } from "@/lib/games/skins";
+import { DEFAULT_SKIN, type SkinId } from "@/lib/games/skins";
 import {
   BOARD_X,
   BOARD_Y,
@@ -13,11 +13,11 @@ import {
   GROW_FRUIT,
   H,
   MAX_DT,
-  PALETTE,
   POINTS_BONUS,
   POINTS_FRUIT,
   QUEUE_MAX,
   ROWS,
+  SKINS,
   START_CELLS,
   START_DIR,
   START_LIVES,
@@ -53,7 +53,7 @@ export type SnakeGame = {
   restart: () => void; // serpiente inicial, 3 vidas, nivel 1, 0 puntos, fruta nueva; reemite los valores iniciales
   end: () => void; // fuerza game over con la puntuación actual → onLives(0) + onGameOver
   destroy: () => void; // cancela rAF, quita listeners y descarta la carga del sprite; idempotente
-  setSkin: (id: SkinId) => void; // skins: pendiente (no-op)
+  setSkin: (id: SkinId) => void; // cambia colores y glow desde el siguiente frame, sin tocar la partida
 };
 type Phase = "loading" | "ready" | "playing" | "paused" | "gameover";
 // Solo WASD, leído por e.code: funciona con Bloq Mayús y con cualquier distribución.
@@ -71,10 +71,13 @@ const randomFruit = (): FruitName =>
 export function createSnakeGame(
   canvas: HTMLCanvasElement,
   callbacks: SnakeCallbacks,
+  skinId: SkinId = DEFAULT_SKIN,
 ): SnakeGame {
   const maybeCtx = canvas.getContext("2d");
   if (!maybeCtx) throw new Error("Canvas 2D no disponible");
   const ctx: CanvasRenderingContext2D = maybeCtx;
+  // Skin actual: solo lo lee el dibujo.
+  let skin = SKINS[skinId];
   // HiDPI: buffer a resolución física, dibujo en coordenadas lógicas 800×600.
   const dpr = window.devicePixelRatio || 1;
   canvas.width = W * dpr;
@@ -213,21 +216,21 @@ export function createSnakeGame(
   }
   // ── Draw ── (sin HUD ni overlays: los pinta la plataforma)
   function draw(c: CanvasRenderingContext2D) {
-    c.fillStyle = PALETTE.bg;
+    c.fillStyle = skin.palette.bg;
     c.fillRect(0, 0, W, H);
-    drawBoard(c);
+    drawBoard(c, skin);
     if (loaded) {
-      drawFruit(c, fruitsImg, fruit.cell, fruit.sprite);
+      drawFruit(c, fruitsImg, fruit.cell, fruit.sprite, skin);
       if (bonus) {
-        drawBonusGlow(c, bonus.cell, bonus.remaining);
-        drawFruit(c, fruitsImg, bonus.cell, BONUS_FRUIT);
-        drawBonusBar(c, bonus.cell, bonus.remaining / BONUS_MS);
+        drawBonusGlow(c, bonus.cell, bonus.remaining, skin);
+        drawFruit(c, fruitsImg, bonus.cell, BONUS_FRUIT, skin);
+        drawBonusBar(c, bonus.cell, bonus.remaining / BONUS_MS, skin);
       }
     }
-    drawSnake(c, snake);
-    for (const f of flashes) drawFlash(c, f);
+    drawSnake(c, snake, skin);
+    for (const f of flashes) drawFlash(c, f, skin);
     if (phase === "ready") {
-      c.fillStyle = PALETTE.prompt;
+      c.fillStyle = skin.palette.prompt;
       c.font = "20px monospace";
       c.textAlign = "center";
       c.textBaseline = "middle";
@@ -305,7 +308,12 @@ export function createSnakeGame(
     loadFruits().then(onLoaded, () => onLoaded(null)),
   );
   return {
-    setSkin() {},
+    setSkin(id) {
+      if (destroyed) return;
+      skin = SKINS[id];
+      // En pausa o tras el game over el loop puede estar parado: se repinta una vez.
+      if (phase === "paused" || phase === "gameover") draw(ctx);
+    },
     pause() {
       if (destroyed || phase === "paused" || phase === "gameover") return;
       pausedFrom = phase;
