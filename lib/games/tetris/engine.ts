@@ -1,3 +1,4 @@
+import type { GameAction } from "@/lib/games/input";
 import { DEFAULT_SKIN, type SkinId } from "@/lib/games/skins";
 import {
   BOARD_X,
@@ -47,6 +48,7 @@ export type TetrisGame = {
   end: () => void; // fuerza game over con la puntuación actual → onLives(0) + onGameOver
   destroy: () => void; // cancela rAF y quita listeners; idempotente
   setSkin: (id: SkinId) => void; // cambia colores y glow desde el siguiente frame, sin tocar la partida
+  input: (action: GameAction, pressed: boolean) => void; // mando táctil: mismas reglas que el teclado
 };
 type State = "playing" | "paused" | "gameover";
 // Teclas de juego cuya acción por defecto (scroll, activar botón enfocado) se bloquea.
@@ -57,6 +59,14 @@ const GAME_KEYS = new Set([
   "ArrowDown",
   "Space",
 ]);
+// Acciones del mando → tecla equivalente.
+const ACTION_KEYS: Partial<Record<GameAction, string>> = {
+  left: "ArrowLeft",
+  right: "ArrowRight",
+  down: "ArrowDown",
+  a: "ArrowUp",
+  b: "Space",
+};
 const isTypingTarget = (t: EventTarget | null) =>
   t instanceof HTMLElement &&
   (t.tagName === "INPUT" || t.tagName === "TEXTAREA");
@@ -323,8 +333,12 @@ export function createTetrisGame(
   const onKeyDown = (e: KeyboardEvent) => {
     if (isTypingTarget(e.target) || state === "gameover") return;
     if (GAME_KEYS.has(e.code)) e.preventDefault();
-    if (state === "paused") return;
-    switch (e.code) {
+    act(e.code);
+  };
+  // Teclado y mando comparten act: una pulsación = un movimiento.
+  function act(code: string) {
+    if (state !== "playing") return;
+    switch (code) {
       case "ArrowLeft":
         if (!collide(board, current.shape, current.x - 1, current.y))
           current.x--;
@@ -347,7 +361,7 @@ export function createTetrisGame(
         return;
     }
     emit();
-  };
+  }
   // Evita que Espacio active un botón enfocado (PAUSA/REANUDAR) al soltarlo.
   const onKeyUp = (e: KeyboardEvent) => {
     if (isTypingTarget(e.target) || state === "gameover") return;
@@ -365,6 +379,12 @@ export function createTetrisGame(
       // En pausa el loop está parado: se repinta una vez para que el cambio se vea ya.
       // Tras el game over no se redibuja, como en el original.
       if (state === "paused") draw(ctx);
+    },
+    input(action, pressed) {
+      const code = ACTION_KEYS[action];
+      // Soltar no hace nada: la autorrepetición la da el mando.
+      if (destroyed || !code || !pressed) return;
+      act(code);
     },
     pause() {
       if (destroyed || state !== "playing") return;

@@ -46,7 +46,7 @@ Cómo usarlo:
 - Pausa por tres vías con un único estado de React: botón PAUSA/REANUDAR, teclas `P`/`Escape` y `visibilitychange`.
 - Fin de partida: `onGameOver(score)` abre el modal "FIN DEL JUEGO". FIN llama a `end()` y JUGAR DE NUEVO a `restart()`.
 - GUARDAR PUNTUACIÓN usa `submitScore` (heredado de `GameShell`). La puntuación aparece en el TOP 10 de `/games/<id>` y en la pestaña <TÍTULO> de `/salon`.
-- En dispositivos sin teclado (`(hover: none) and (pointer: coarse)`), el CRT muestra "REQUIERE TECLADO" y el motor no se crea.
+- Mando táctil (SPEC 10): el motor expone `input(action, pressed)` y traduce cada acción (`up/down/left/right/a/b`) a su tecla, pasando por la misma función que el teclado. El componente define su `TouchLayout` (cruceta <flechas>, botones <A: …, B: …>, autorrepetición <sí/no>) y pasa `controls={touch && <TouchPad … />}` a `GameShell`.
 - **[si sustituye a un simulado]** El juego ocupa la entrada `<id>` del catálogo. <Se conservan las puntuaciones del seed / Se vacían con una migración>. <[si cambian] Textos `short`/`long` nuevos en `games` y en `GAMES`.>
 - **[si es un juego nuevo]** Fila `<id>` en `games` por migración, entrada de respaldo en `GAMES`, cover `.cover-<nombre>` diseñada con `/frontend-design`, y <seed de 12 puntuaciones / ranking vacío>.
 - **[si hay assets]** <Sprites/sonidos> copiados a `public/games/<id>/` y cargados por el motor antes de arrancar.
@@ -55,7 +55,7 @@ Cómo usarlo:
 
 **Fuera de alcance (specs futuras):**
 
-- Controles táctiles.
+- <Gestos táctiles propios del juego, si no entran.>
 - <Sonido, música o mute, si no entran.>
 - <Mecánicas que no están en la referencia o que no se acordaron.>
 - Cambios en los demás juegos simulados.
@@ -183,8 +183,9 @@ app/globals.css                           (<estilos del canvas / cover nueva>)
    - Resultado: el juego es jugable de principio a fin y GUARDAR PUNTUACIÓN crea una fila en `scores`.
 5. **Paleta neón.**
    - Usar `/frontend-design` para fijar `PALETTE` y el glow, y aplicarlos en `entities.ts` y `engine.ts`.
-6. **[si no lo da el hook] Aviso de dispositivo sin teclado.**
-   - `useSyncExternalStore` sobre `matchMedia`, con snapshot de servidor `false`. Si coincide, aviso "REQUIERE TECLADO" y el motor no se crea.
+6. **Mando táctil.**
+   - `input(action, pressed)` en el motor, con un mapa acción → tecla y la función compartida con el teclado.
+   - `TouchLayout` en el componente y `controls={touch && <TouchPad layout={TOUCH} onInput={input} disabled={paused || over} />}`.
 7. **Verificación final.**
    - `npm run build` y `npm run lint`.
    - Recorrer los criterios de aceptación con el MCP de Playwright y el de Supabase.
@@ -211,7 +212,7 @@ app/globals.css                           (<estilos del canvas / cover nueva>)
 - [ ] Una puntuación que entra en el TOP 10 aparece en `/games/<id>` y en la pestaña <TÍTULO> de `/salon` sin recargar la caché, y coincide con `leaderboard('<id>', 10)`.
 - [ ] JUGAR DE NUEVO cierra el modal y empieza una partida nueva con los valores iniciales.
 - [ ] Al navegar a otra página, pulsar <teclas> no lanza errores y la página hace scroll con normalidad.
-- [ ] Con emulación táctil en Playwright, `/games/<id>/play` muestra "REQUIERE TECLADO" y no hay `<canvas>`.
+- [ ] Con emulación táctil en Playwright (`hasTouch`), `/games/<id>/play` muestra el `<canvas>` y el mando con <flechas y botones>, y cada botón hace lo mismo que su tecla. En escritorio no hay mando.
 - [ ] Los elementos usan los colores de `PALETTE`, y el canvas se ve nítido con `devicePixelRatio` 2.
 - [ ] **[si es nuevo]** `select * from games where id = '<id>'` devuelve la fila. `/games` lo muestra en la posición <n> y con el filtro <CAT>. Sin las variables de Supabase sale del respaldo con MEJOR PUNTUACIÓN 0.
 - [ ] **[si es nuevo]** La cover `.cover-<nombre>` se ve en la tarjeta de `/games`, en la ficha y <en la home si está entre los 6 primeros>.
@@ -250,7 +251,7 @@ app/globals.css                           (<estilos del canvas / cover nueva>)
 
 ## Lo que **no** entra en esta spec
 
-- Controles táctiles.
+- <Gestos táctiles, si no entran.>
 - <Sonido / mute, si no entra.>
 - <Mecánicas nuevas.>
 - Cambios en los demás juegos simulados.
@@ -258,4 +259,3 @@ app/globals.css                           (<estilos del canvas / cover nueva>)
 
 Cada una de estas cosas, si llega, irá en su propia spec.
 ````
-

@@ -1,12 +1,16 @@
 "use client";
 import type { Game } from "@/app/data/games";
 import { GameShell } from "@/components/games/game-shell";
+import { TouchPad } from "@/components/games/touch-pad";
 import {
   CanvasScreen,
   useCanvasGame,
 } from "@/components/games/use-canvas-game";
 import { createArkanoidGame } from "@/lib/games/arkanoid/engine";
+import type { TouchLayout } from "@/lib/games/input";
 const INITIAL_HUD = { score: 0, lives: 3, level: 1 };
+// Mando táctil: ← → mantenidas. Arrastrar el dedo sobre el canvas también mueve la paleta.
+const TOUCH: TouchLayout = { dpad: ["left", "right"], buttons: [] };
 // BLOQUE BUSTER: monta el motor de Arkanoid en el CRT y conecta su estado con el shell.
 export function ArkanoidGame({ game }: { game: Game }) {
   const {
@@ -14,9 +18,10 @@ export function ArkanoidGame({ game }: { game: Game }) {
     hud,
     paused,
     over,
-    noKeyboard,
+    touch,
     togglePause,
     end,
+    input,
     restart,
     skin,
     setSkin,
@@ -32,10 +37,14 @@ export function ArkanoidGame({ game }: { game: Game }) {
       onRestart={restart}
       skin={skin}
       onSkinChange={setSkin}
+      controls={
+        touch && (
+          <TouchPad layout={TOUCH} onInput={input} disabled={paused || over} />
+        )
+      }
     >
       <CanvasScreen
         canvasRef={canvasRef}
-        noKeyboard={noKeyboard}
         label={`${game.title}: área de juego`}
       />
     </GameShell>

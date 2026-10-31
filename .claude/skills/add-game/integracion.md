@@ -34,6 +34,8 @@ export type <Motor>Game = {
   restart: () => void; // reinicia y vuelve a emitir los valores iniciales
   end: () => void; // fuerza game over con la puntuación actual → onGameOver
   destroy: () => void; // cancela rAF y quita listeners; idempotente
+  setSkin: (id: SkinId) => void; // ver Skins
+  input: (action: GameAction, pressed: boolean) => void; // mando táctil (SPEC 10)
 };
 
 export function create<Motor>Game(
@@ -54,6 +56,7 @@ Reglas fijas:
 - Puntuación entera entre 0 y 9.999.999 (lo exigen la Server Action y el `check` de `scores`).
 - Paleta: hex de los tokens de `app/globals.css` (el canvas no lee variables CSS), glow con `shadowBlur`, diseñada con `/frontend-design`. Primero se porta con los colores originales y en un paso posterior se aplica la paleta neón. Ambas acaban siendo skins (`clasico` y `neon`) del contrato de **Skins** (abajo); el agente `skin-designer` completa `retro` y `pastel` y verifica el contraste.
 - Assets, si los hay: en `public/games/<id>/`, cargados por el motor y esperados antes de arrancar el loop.
+- Entrada táctil: `input(action, pressed)` con `GameAction` de `lib/games/input.ts` (`up`, `down`, `left`, `right`, `a`, `b`). El motor tiene un mapa `ACTION_KEYS` acción → `e.code` y una función interna que comparten el teclado y el mando (`press`/`release`, `act`, `setKey`, `turn`…), así las reglas son idénticas con los dos. Respeta las mismas guardas (pausa, carga, gameover, `destroy`) e ignora las acciones que no usa. Nunca se simulan `KeyboardEvent`. Si el juego usa el puntero sobre el canvas, se escucha con `pointerdown`/`pointermove` (ratón y dedo) y el motor pone `canvas.style.touchAction = "none"`, restaurado en `destroy`.
 
 ## 3. Componente (`components/games/<motor>-game.tsx`)
 
@@ -62,7 +65,19 @@ Reglas fijas:
 - Estado `hud`, `paused` y `over`. El motor se crea en un `useEffect` con el canvas por ref, y la limpieza llama a `destroy` (aguanta el doble montaje de StrictMode).
 - Un único estado de pausa para el botón, `P`/`Escape` (ignoradas con `over` o con foco en un input) y `visibilitychange` cuando `document.hidden`.
 - `onEnd` llama a `end()`. `onRestart` llama a `restart()` y resetea `over` y `paused`.
-- Sin teclado (`(hover: none) and (pointer: coarse)` con `useSyncExternalStore` y snapshot de servidor `false`): aviso "REQUIERE TECLADO" / "JUEGA DESDE UN ORDENADOR" en `.crt-content` y el motor no se crea.
+- Táctil (`(pointer: coarse)` con `useSyncExternalStore` y snapshot de servidor `false`, expuesto por el hook como `touch`): el motor se crea igual y el teclado sigue funcionando. El componente define su mando como constante de módulo y lo pasa al shell:
+
+  ```tsx
+  const TOUCH: TouchLayout = {
+    dpad: ["left", "right"], // flechas que se pintan
+    buttons: [{ action: "a", label: "FUEGO" }], // 0–2 botones, A a la derecha
+    repeat: ["left", "right"], // opcional: autorrepetición al mantener (170 ms / 50 ms)
+  };
+  // …
+  <GameShell … controls={touch && <TouchPad layout={TOUCH} onInput={input} disabled={paused || over} />}>
+  ```
+
+  `TouchPad` (`components/games/touch-pad.tsx`) usa Pointer Events con captura por botón (multitáctil), suelta todo con `disabled` y al desmontarse, y bloquea scroll, zoom, selección y menú contextual. El layout táctil vertical/horizontal del player vive en `app/globals.css` y se activa solo con `.av-player:has(.touch-pad)`.
 
 Si ya existe un hook compartido para esto (por ejemplo, extraído por una spec de juego anterior), se usa ese en lugar de copiar.
 
@@ -129,6 +144,6 @@ El id ya está en `games` (seed de la SPEC 06) y en `GAMES` (`app/data/games.ts`
 - GUARDAR PUNTUACIÓN: "GUARDANDO…" y luego "▸ PUNTUACIÓN GUARDADA_", con fila nueva en `scores` con `game_id = '<id>'` (`execute_sql`).
 - La puntuación aparece en el TOP 10 de `/games/<id>` y en la pestaña de `/salon` sin recargar la caché, y coincide con `leaderboard('<id>', 10)`.
 - Al salir de la ruta no quedan listeners ni loop (flechas y Espacio hacen scroll con normalidad).
-- Emulación táctil: "REQUIERE TECLADO" y sin `<canvas>`.
+- Emulación táctil (contexto de Playwright con `hasTouch`/`isMobile`, vertical y horizontal): `<canvas>` y mando con las flechas y botones del `TouchLayout`, cada botón hace lo mismo que su tecla, el mando no responde en pausa ni con el modal, y el CRT y el mando caben en pantalla. En escritorio no hay mando.
 - Nitidez con `devicePixelRatio` 2 y colores de `PALETTE`.
 - Juego nuevo: aparece en `/games` en su `sort_order`, filtra por su categoría, y sin variables de Supabase sale del respaldo con MEJOR PUNTUACIÓN 0.
