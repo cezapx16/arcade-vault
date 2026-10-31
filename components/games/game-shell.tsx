@@ -16,6 +16,7 @@ type GameShellProps = {
   // Skin del canvas y su selector (se guarda por juego). Sin ellos no hay selector (partida simulada).
   skin?: SkinId;
   onSkinChange?: (skin: SkinId) => void;
+  controls?: ReactNode; // mando táctil bajo el CRT; sin él el shell es igual que siempre
   children: ReactNode; // contenido de .crt-screen
 };
 // Capa de presentación compartida por todos los juegos: HUD, CRT, pausa y modal de fin.
@@ -30,6 +31,7 @@ export function GameShell({
   onRestart,
   skin,
   onSkinChange,
+  controls,
   children,
 }: GameShellProps) {
   const user = useUser();
@@ -139,6 +141,7 @@ export function GameShell({
           <span>CARGA · 1MB</span>
         </div>
       </div>
+      {controls}
       {over && (
         <div className="modal-bd">
           <div

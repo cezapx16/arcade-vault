@@ -22,16 +22,16 @@ type Hud = { score: number; lives: number; level: number };
 const isTypingTarget = (t: EventTarget | null) =>
   t instanceof HTMLElement &&
   (t.tagName === "INPUT" || t.tagName === "TEXTAREA");
-// Dispositivos sin teclado (táctiles): el juego no se puede controlar y el motor no se crea.
-const NO_KEYBOARD_QUERY = "(hover: none) and (pointer: coarse)";
-const subscribeNoKeyboard = (onChange: () => void) => {
-  const mql = window.matchMedia(NO_KEYBOARD_QUERY);
+// Dispositivos táctiles: se muestra el mando en pantalla. El teclado funciona siempre.
+const TOUCH_QUERY = "(pointer: coarse)";
+const subscribeTouch = (onChange: () => void) => {
+  const mql = window.matchMedia(TOUCH_QUERY);
   mql.addEventListener("change", onChange);
   return () => mql.removeEventListener("change", onChange);
 };
-const getNoKeyboard = () => window.matchMedia(NO_KEYBOARD_QUERY).matches;
-// En el servidor se asume teclado; en la hidratación se corrige sin mismatch.
-const getServerNoKeyboard = () => false;
+const getTouch = () => window.matchMedia(TOUCH_QUERY).matches;
+// En el servidor se asume sin táctil; el mando aparece tras la hidratación, sin mismatch.
+const getServerTouch = () => false;
 // Monta un motor de canvas en el CRT y expone su estado para el shell.
 // `create` debe ser estable (una función de módulo), o el motor se recrea en cada render.
 // El skin se guarda por juego (`gameId`) y se aplica en caliente con engine.setSkin.
@@ -53,15 +53,11 @@ export function useCanvasGame(
   const [hud, setHud] = useState(initialHud);
   const [paused, setPaused] = useState(false);
   const [over, setOver] = useState(false);
-  const noKeyboard = useSyncExternalStore(
-    subscribeNoKeyboard,
-    getNoKeyboard,
-    getServerNoKeyboard,
-  );
+  const touch = useSyncExternalStore(subscribeTouch, getTouch, getServerTouch);
   // Un motor por montaje: con el doble montaje de StrictMode se destruye el primero.
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (noKeyboard || !canvas) return;
+    if (!canvas) return;
     const engine = create(
       canvas,
       {
@@ -77,7 +73,7 @@ export function useCanvasGame(
       engine.destroy();
       engineRef.current = null;
     };
-  }, [create, noKeyboard]);
+  }, [create]);
   useEffect(() => {
     skinRef.current = skin;
     engineRef.current?.setSkin(skin);
@@ -116,7 +112,7 @@ export function useCanvasGame(
     hud,
     paused,
     over,
-    noKeyboard,
+    touch,
     togglePause: () => setPaused((p) => !p),
     end: () => engineRef.current?.end(),
     input: (action: GameAction, pressed: boolean) =>
@@ -126,28 +122,13 @@ export function useCanvasGame(
     setSkin,
   };
 }
-// Aviso "REQUIERE TECLADO" en táctil o el canvas del juego.
+// El canvas del juego dentro del CRT.
 export function CanvasScreen({
   canvasRef,
-  noKeyboard,
   label,
 }: {
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
-  noKeyboard: boolean;
   label: string;
 }) {
-  if (noKeyboard)
-    return (
-      <div className="crt-content">
-        <div>
-          <div className="pixel neon-magenta text-[14px] leading-relaxed sm:text-[18px]">
-            REQUIERE TECLADO
-          </div>
-          <div className="mono mt-2.5 text-[11px] tracking-[0.16em] text-ink-dim">
-            JUEGA DESDE UN ORDENADOR
-          </div>
-        </div>
-      </div>
-    );
   return <canvas ref={canvasRef} className="game-canvas" aria-label={label} />;
 }
