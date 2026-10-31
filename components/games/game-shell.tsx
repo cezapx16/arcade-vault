@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
-import { useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState, type ReactNode } from "react";
 import { submitScore, type SubmitScoreResult } from "@/app/actions/scores";
 import type { Game } from "@/app/data/games";
 import { SKIN_IDS, SKIN_LABELS, type SkinId } from "@/lib/games/skins";
@@ -35,6 +36,19 @@ export function GameShell({
   children,
 }: GameShellProps) {
   const user = useUser();
+  const router = useRouter();
+  const hasControls = Boolean(controls);
+  // Con mando táctil el player va a pantalla completa: el CSS oculta la barra de navegación.
+  // Va en un efecto (no en un :has del CSS) para que se quite al salir aunque la ruta
+  // quede montada y oculta (Cache Components conserva las rutas visitadas).
+  useEffect(() => {
+    if (!hasControls) return;
+    const root = document.documentElement;
+    root.dataset.touchPlayer = "";
+    return () => {
+      delete root.dataset.touchPlayer;
+    };
+  }, [hasControls]);
   // null = el jugador aún no ha escrito nada: se muestra el usuario o INVITADO.
   const [typedName, setTypedName] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -97,6 +111,19 @@ export function GameShell({
           <Link href={`/games/${game.id}`} className="btn ghost text-center">
             SALIR
           </Link>
+          {/* Con mando táctil la barra de navegación se oculta: REGRESAR la sustituye. */}
+          {controls && (
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={() => {
+                if (window.history.length > 1) router.back();
+                else router.push("/games");
+              }}
+            >
+              REGRESAR
+            </button>
+          )}
         </div>
       </div>
       {skin && onSkinChange && (

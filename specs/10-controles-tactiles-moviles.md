@@ -1,6 +1,6 @@
 # SPEC 10 — Controles táctiles para jugar en el móvil
 
-> **Estado:** Aprobado 
+> **Estado:** Aprobado
 > **Depende de:** SPEC 05, SPEC 07, SPEC 08, SPEC 09
 > **Fecha:** 2026-10-31
 > **Objetivo:** Hacer jugables los cuatro juegos reales (ROCAS, CAÍDA, BLOQUE BUSTER y SERPENTINA) en móviles y tablets táctiles con un mando virtual en pantalla, sin cambiar cómo se juega con teclado.
@@ -243,6 +243,11 @@ CLAUDE.md                                   (modificado)
    - `npm run build` y `npm run lint`.
    - Recorrer los criterios con el MCP de Playwright: escritorio normal y un contexto móvil con `hasTouch`/`isMobile` (iPhone 13 en vertical y en horizontal) creado con `browser_run_code_unsafe`.
    - Prueba manual del usuario en un móvil real: `npm run build && npx next start -H 0.0.0.0` y abrir `http://<IP-del-PC>:3000/games/<id>/play` desde la misma red.
+7. **Ampliación (2026-10-31): player a pantalla completa en táctil.**
+   - En la pantalla de un juego real con mando (`body:has(.touch-pad)` en `(pointer: coarse)`), la barra de navegación (`.av-nav`) y su panel móvil (`.av-mobile-panel`) se ocultan del todo (`display: none`). En escritorio y en las demás páginas no cambia nada. En horizontal, `--nav-h` pasa a `0px`.
+   - Separación entre el CRT y el mando en vertical: `margin-top` del `.touch-pad` de 16 px a 32 px. En horizontal no cambia (el mando va a los lados).
+   - Botón **REGRESAR** en `GameShell`, como cuarto botón de la fila PAUSA · FIN · SALIR, solo cuando hay mando (`controls`). Vuelve a la página anterior (`router.back()`) y, si no hay historial (`history.length <= 1`), va a `/games`. En escritorio no aparece.
+   - Resultado: en táctil el player ocupa la pantalla sin barra de navegación, y se puede volver atrás con REGRESAR.
 
 ## Criterios de aceptación
 
@@ -276,6 +281,14 @@ CLAUDE.md                                   (modificado)
 - [ ] El CRT completo cabe en la altura del viewport y mantiene el 4:3.
 - [ ] Girar el dispositivo durante la partida no reinicia el motor ni pierde la puntuación.
 
+**Ampliación (paso 7):**
+
+- [ ] En táctil, `/games/<id>/play` de los cuatro juegos no muestra la barra de navegación ni deja hueco arriba. En escritorio, en `/games/gloton/play` y en el resto de páginas la barra sigue igual.
+- [ ] En vertical hay 32 px entre el borde inferior del CRT y el panel del mando, y HUD, CRT y mando siguen cabiendo en 390×844 sin scroll.
+- [ ] En horizontal (844×390) la página no se reduce: el ancho del documento es el del viewport.
+- [ ] En táctil, la fila del HUD muestra PAUSA · FIN · SALIR · REGRESAR en una línea; en escritorio no aparece REGRESAR.
+- [ ] REGRESAR vuelve a la página desde la que se entró al juego (por ejemplo, la ficha o la biblioteca); abierto el juego directamente en una pestaña nueva, lleva a `/games`.
+
 **Documentación:**
 
 - [ ] `rg "REQUIERE TECLADO" -g "!specs/**"` no devuelve resultados.
@@ -301,6 +314,12 @@ CLAUDE.md                                   (modificado)
 - **Sí:** SERPENTINA lee `(pointer: coarse)` una vez al crearse para el texto del aviso. Es la única excepción a "el motor no mira el entorno", y solo afecta a un texto.
 - **Sí:** actualizar ya `integracion.md`, `/add-game` y `game-jam` para que los juegos nuevos nazcan con controles táctiles.
 - **Sí:** prueba en móvil real con `next start` (build de producción) en la red local, que no necesita tocar `next.config.ts`.
+- **Ampliación (paso 7), pedida por el usuario tras la verificación, con las recomendaciones aceptadas ("OK a todo"):**
+  - **Sí:** añadirla a esta spec y a esta rama. **No:** una spec 11, porque es el mismo layout táctil del player.
+  - **Sí:** ocultar la barra de navegación solo en el player de un juego real con mando. **No:** ocultarla en escritorio o en otras páginas. De paso desaparece el desbordamiento de la barra a 844 px que hacía que el móvil redujera la página.
+  - **Sí:** 16 px más de separación entre CRT y mando en vertical (32 px en total).
+  - **Sí:** REGRESAR como cuarto botón del HUD, con `router.back()` y `/games` si no hay historial. **No:** en la fila de skins. **No:** renombrar SALIR, que sigue llevando a la ficha del juego.
+  - **Sí:** REGRESAR solo en táctil, porque sustituye a la barra de navegación oculta; en escritorio la barra sigue ahí. Decidido al implementar (la pregunta quedó sin respuesta explícita).
 
 ## Riesgos
 
