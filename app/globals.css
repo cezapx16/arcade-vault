@@ -684,6 +684,92 @@ a { color: inherit; text-decoration: none; }
   box-shadow: 0 0 10px rgba(0,245,255,0.35), inset 0 0 6px rgba(0,245,255,0.2);
 }
 .skin-btn[aria-pressed="true"]::before { background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
+/* ===== mando táctil: el panel de mandos del mueble, bajo el CRT ===== */
+.touch-pad {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  margin-top: 18px;
+  padding: 18px 22px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, #0c0c12, #050507);
+  box-shadow: 0 0 0 6px #1b1b22, 0 0 0 7px #2a2a35, inset 0 1px 0 rgba(255,255,255,0.04);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.touch-pad[data-disabled="true"] { opacity: 0.45; }
+/* cruceta en cruz: rejilla 3×3, cada flecha en su brazo y el eje en el centro */
+.touch-dpad {
+  --arm: 58px;
+  display: grid;
+  grid-template: repeat(3, var(--arm)) / repeat(3, var(--arm));
+  grid-template-areas: ". up ." "left hub right" ". down .";
+}
+.touch-hub { grid-area: hub; background: var(--bg-3); }
+.touch-hub::after {
+  content: ""; display: block; width: 14px; height: 14px; margin: calc(var(--arm) / 2 - 7px) auto 0;
+  border-radius: 50%; background: #050507; box-shadow: inset 0 1px 2px rgba(0,0,0,0.9), 0 0 0 1px var(--line-2);
+}
+.touch-btn {
+  position: relative;
+  padding: 0; border: 0; margin: 0;
+  background: var(--bg-3);
+  color: var(--ink-dim);
+  cursor: pointer;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.touch-btn:focus { outline: none; }
+.touch-btn[data-dir="up"] { grid-area: up; border-radius: 8px 8px 0 0; }
+.touch-btn[data-dir="down"] { grid-area: down; border-radius: 0 0 8px 8px; }
+.touch-btn[data-dir="left"] { grid-area: left; border-radius: 8px 0 0 8px; }
+.touch-btn[data-dir="right"] { grid-area: right; border-radius: 0 8px 8px 0; }
+/* flecha: triángulo recortado, girado según el brazo */
+.touch-btn[data-dir]::before {
+  content: "";
+  position: absolute; left: 50%; top: 50%;
+  width: 16px; height: 12px; margin: -6px 0 0 -8px;
+  background: currentColor;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+.touch-btn[data-dir="down"]::before { transform: rotate(180deg); }
+.touch-btn[data-dir="left"]::before { transform: rotate(-90deg); }
+.touch-btn[data-dir="right"]::before { transform: rotate(90deg); }
+.touch-btn[data-dir][data-pressed="true"] {
+  color: var(--cyan);
+  background: #0b2a30;
+  box-shadow: inset 0 0 14px rgba(0,245,255,0.45), 0 0 12px rgba(0,245,255,0.35);
+}
+.touch-btn[data-dir][data-pressed="true"]::before { filter: drop-shadow(0 0 4px var(--cyan)); }
+/* botones de arcade: redondos, cóncavos y con el aro iluminado al pulsar */
+.touch-actions { display: flex; align-items: flex-end; gap: 18px; }
+.touch-action { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.touch-btn.action {
+  --c: var(--magenta);
+  --glow: rgba(255,0,110,0.55);
+  width: 68px; height: 68px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--c) 55%, #000) 0 45%, color-mix(in srgb, var(--c) 30%, #000) 70%);
+  box-shadow: 0 0 0 4px #1b1b22, 0 0 0 5px color-mix(in srgb, var(--c) 45%, transparent), 0 5px 0 4px #0a0a10;
+  transition: transform 60ms, box-shadow 60ms;
+}
+.touch-btn.action[data-action="b"] { --c: var(--yellow); --glow: rgba(245,255,0,0.5); }
+.touch-btn.action[data-pressed="true"] {
+  transform: translateY(4px);
+  background: radial-gradient(circle at 50% 40%, var(--c) 0 30%, color-mix(in srgb, var(--c) 60%, #000) 72%);
+  box-shadow: 0 0 0 4px #1b1b22, 0 0 0 5px var(--c), 0 1px 0 4px #0a0a10, 0 0 22px 6px var(--glow);
+}
+.touch-label { font-family: var(--pixel); font-size: 8px; letter-spacing: 0.1em; color: var(--ink-dim); }
+@media (prefers-reduced-motion: reduce) {
+  .touch-btn.action { transition: none; }
+  .touch-btn.action[data-pressed="true"] { transform: none; }
+}
+@media (max-width: 380px) {
+  .touch-dpad { --arm: 50px; }
+  .touch-btn.action { width: 60px; height: 60px; }
+  .touch-pad { padding: 14px 16px; }
+}
 
 .crt {
   position: relative;
