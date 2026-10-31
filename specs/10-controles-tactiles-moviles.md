@@ -1,6 +1,6 @@
 # SPEC 10 — Controles táctiles para jugar en el móvil
 
-> **Estado:** Aprobado
+> **Estado:**Implementado
 > **Depende de:** SPEC 05, SPEC 07, SPEC 08, SPEC 09
 > **Fecha:** 2026-10-31
 > **Objetivo:** Hacer jugables los cuatro juegos reales (ROCAS, CAÍDA, BLOQUE BUSTER y SERPENTINA) en móviles y tablets táctiles con un mando virtual en pantalla, sin cambiar cómo se juega con teclado.
