@@ -1,3 +1,4 @@
+import type { GameAction } from "@/lib/games/input";
 import { DEFAULT_SKIN, type SkinId } from "@/lib/games/skins";
 import {
   BOARD_X,
@@ -15,6 +16,8 @@ import {
   MAX_DT,
   POINTS_BONUS,
   POINTS_FRUIT,
+  PROMPT_KEYS,
+  PROMPT_TOUCH,
   QUEUE_MAX,
   ROWS,
   SKINS,
@@ -54,6 +57,7 @@ export type SnakeGame = {
   end: () => void; // fuerza game over con la puntuación actual → onLives(0) + onGameOver
   destroy: () => void; // cancela rAF, quita listeners y descarta la carga del sprite; idempotente
   setSkin: (id: SkinId) => void; // cambia colores y glow desde el siguiente frame, sin tocar la partida
+  input: (action: GameAction, pressed: boolean) => void; // mando táctil: mismas reglas que el teclado
 };
 type Phase = "loading" | "ready" | "playing" | "paused" | "gameover";
 // Solo WASD, leído por e.code: funciona con Bloq Mayús y con cualquier distribución.
@@ -62,6 +66,13 @@ const KEY_DIRS: Record<string, Dir> = {
   KeyA: "left",
   KeyS: "down",
   KeyD: "right",
+};
+// Acciones del mando → tecla equivalente.
+const ACTION_KEYS: Partial<Record<GameAction, string>> = {
+  up: "KeyW",
+  left: "KeyA",
+  down: "KeyS",
+  right: "KeyD",
 };
 const isTypingTarget = (t: EventTarget | null) =>
   t instanceof HTMLElement &&
@@ -78,6 +89,10 @@ export function createSnakeGame(
   const ctx: CanvasRenderingContext2D = maybeCtx;
   // Skin actual: solo lo lee el dibujo.
   let skin = SKINS[skinId];
+  // El aviso de arranque se decide una vez: con puntero grueso se juega con el mando táctil.
+  const prompt = window.matchMedia("(pointer: coarse)").matches
+    ? PROMPT_TOUCH
+    : PROMPT_KEYS;
   // HiDPI: buffer a resolución física, dibujo en coordenadas lógicas 800×600.
   const dpr = window.devicePixelRatio || 1;
   canvas.width = W * dpr;
@@ -235,7 +250,7 @@ export function createSnakeGame(
       c.textAlign = "center";
       c.textBaseline = "middle";
       c.fillText(
-        "PULSA W A S D",
+        prompt,
         BOARD_X + (COLS * CELL) / 2,
         BOARD_Y + (ROWS * CELL) / 2 + CELL * 3,
       );
@@ -271,7 +286,11 @@ export function createSnakeGame(
   // Sin preventDefault: WASD no hace scroll. En pausa, carga y gameover se ignora la entrada.
   const onKeyDown = (e: KeyboardEvent) => {
     if (isTypingTarget(e.target) || e.ctrlKey || e.metaKey || e.altKey) return;
-    const d = KEY_DIRS[e.code];
+    turn(e.code);
+  };
+  // Teclado y mando comparten turn: arranque desde la espera y búfer de giros.
+  function turn(code: string) {
+    const d = KEY_DIRS[code];
     if (!d) return;
     if (phase === "ready") {
       // Arranca con la primera dirección que no sea un giro de 180°.
@@ -285,7 +304,7 @@ export function createSnakeGame(
     const last = queue.length ? queue[queue.length - 1] : dir;
     if (d === last || isOpposite(d, last) || queue.length >= QUEUE_MAX) return;
     queue.push(d);
-  };
+  }
   window.addEventListener("keydown", onKeyDown);
   init();
   emit();
@@ -313,6 +332,12 @@ export function createSnakeGame(
       skin = SKINS[id];
       // En pausa o tras el game over el loop puede estar parado: se repinta una vez.
       if (phase === "paused" || phase === "gameover") draw(ctx);
+    },
+    input(action, pressed) {
+      const code = ACTION_KEYS[action];
+      // Cada toque es un giro; soltar no hace nada.
+      if (destroyed || !code || !pressed) return;
+      turn(code);
     },
     pause() {
       if (destroyed || phase === "paused" || phase === "gameover") return;

@@ -1,3 +1,4 @@
+import type { GameAction } from "@/lib/games/input";
 import { DEFAULT_SKIN, type SkinId } from "@/lib/games/skins";
 import {
   BALL_SIZE,
@@ -43,9 +44,15 @@ export type ArkanoidGame = {
   end: () => void; // fuerza game over con la puntuación actual → onLives(0) + onGameOver
   destroy: () => void; // cancela rAF y quita listeners; idempotente
   setSkin: (id: SkinId) => void; // cambia colores y glow desde el siguiente frame, sin tocar la partida
+  input: (action: GameAction, pressed: boolean) => void; // mando táctil: mismas reglas que el teclado
 };
 type State = "playing" | "paused" | "gameover";
 type Keys = { ArrowLeft: boolean; ArrowRight: boolean };
+// Acciones del mando → tecla equivalente.
+const ACTION_KEYS: Partial<Record<GameAction, keyof Keys>> = {
+  left: "ArrowLeft",
+  right: "ArrowRight",
+};
 const isTypingTarget = (t: EventTarget | null) =>
   t instanceof HTMLElement &&
   (t.tagName === "INPUT" || t.tagName === "TEXTAREA");
@@ -239,29 +246,38 @@ export function createArkanoidGame(
   }
   // ── Listeners ──
   // En pausa y gameover se ignora la entrada; con el foco en un campo de texto no se toca nada.
+  // Teclado y mando comparten setKey.
+  const setKey = (code: keyof Keys, pressed: boolean) => {
+    if (state !== "playing") return;
+    keys[code] = pressed;
+  };
   const onKeyDown = (e: KeyboardEvent) => {
     if (isTypingTarget(e.target) || state !== "playing") return;
     if (e.code !== "ArrowLeft" && e.code !== "ArrowRight") return;
     e.preventDefault();
-    keys[e.code] = true;
+    setKey(e.code, true);
   };
   const onKeyUp = (e: KeyboardEvent) => {
     if (isTypingTarget(e.target) || state !== "playing") return;
     if (e.code !== "ArrowLeft" && e.code !== "ArrowRight") return;
     e.preventDefault();
-    keys[e.code] = false;
+    setKey(e.code, false);
   };
-  // El ratón centra la paleta en el cursor; la escala usa W / rect.width (canvas.width lleva el dpr).
-  const onMouseMove = (e: MouseEvent) => {
+  // Ratón o dedo: centra la paleta en el puntero; la escala usa W / rect.width (canvas.width lleva el dpr).
+  const onPointer = (e: PointerEvent) => {
     if (state !== "playing") return;
     const rect = canvas.getBoundingClientRect();
     if (!rect.width) return;
-    const mouseX = (e.clientX - rect.left) * (W / rect.width);
-    paddle.x = Math.max(0, Math.min(W - paddle.w, mouseX - paddle.w / 2));
+    const pointerX = (e.clientX - rect.left) * (W / rect.width);
+    paddle.x = Math.max(0, Math.min(W - paddle.w, pointerX - paddle.w / 2));
   };
+  // Arrastrar el dedo sobre el canvas mueve la paleta en vez de hacer scroll.
+  const prevTouchAction = canvas.style.touchAction;
+  canvas.style.touchAction = "none";
   window.addEventListener("keydown", onKeyDown);
   window.addEventListener("keyup", onKeyUp);
-  canvas.addEventListener("mousemove", onMouseMove);
+  canvas.addEventListener("pointerdown", onPointer);
+  canvas.addEventListener("pointermove", onPointer);
   init();
   emit();
   start();
@@ -271,6 +287,11 @@ export function createArkanoidGame(
       skin = SKINS[id];
       // En pausa o tras el game over el loop puede estar parado: se repinta una vez.
       if (state !== "playing") draw(ctx);
+    },
+    input(action, pressed) {
+      const code = ACTION_KEYS[action];
+      if (destroyed || !code) return;
+      setKey(code, pressed);
     },
     pause() {
       if (destroyed || state !== "playing") return;
@@ -304,7 +325,9 @@ export function createArkanoidGame(
       stop();
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
-      canvas.removeEventListener("mousemove", onMouseMove);
+      canvas.removeEventListener("pointerdown", onPointer);
+      canvas.removeEventListener("pointermove", onPointer);
+      canvas.style.touchAction = prevTouchAction;
     },
   };
 }

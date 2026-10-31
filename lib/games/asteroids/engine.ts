@@ -1,3 +1,4 @@
+import type { GameAction } from "@/lib/games/input";
 import { DEFAULT_SKIN, type SkinId } from "@/lib/games/skins";
 import {
   H,
@@ -35,10 +36,18 @@ export type AsteroidsGame = {
   end: () => void; // fuerza game over con la puntuación actual → onGameOver
   destroy: () => void; // cancela rAF y quita listeners; idempotente
   setSkin: (id: SkinId) => void; // cambia colores y glow desde el siguiente frame, sin tocar la partida
+  input: (action: GameAction, pressed: boolean) => void; // mando táctil: mismas reglas que el teclado
 };
 type State = "playing" | "dead" | "gameover";
 // Teclas de juego cuya acción por defecto (scroll, activar botón enfocado) se bloquea.
 const GAME_KEYS = new Set(["ArrowLeft", "ArrowRight", "ArrowUp", "Space"]);
+// Acciones del mando → tecla equivalente.
+const ACTION_KEYS: Partial<Record<GameAction, string>> = {
+  left: "ArrowLeft",
+  right: "ArrowRight",
+  up: "ArrowUp",
+  a: "Space",
+};
 const isTypingTarget = (t: EventTarget | null) =>
   t instanceof HTMLElement &&
   (t.tagName === "INPUT" || t.tagName === "TEXTAREA");
@@ -262,15 +271,22 @@ export function createAsteroidsGame(
   }
   // ── Listeners ──
   // En gameover se ignora la entrada; con el foco en un campo de texto no se toca nada.
+  // Teclado y mando comparten press/release.
+  const press = (code: string) => {
+    if (paused || state === "gameover") return;
+    if (!keys[code]) justPressed[code] = true;
+    keys[code] = true;
+  };
+  const release = (code: string) => {
+    keys[code] = false;
+  };
   const onKeyDown = (e: KeyboardEvent) => {
     if (isTypingTarget(e.target) || state === "gameover") return;
     if (GAME_KEYS.has(e.code)) e.preventDefault();
-    if (paused) return;
-    if (!keys[e.code]) justPressed[e.code] = true;
-    keys[e.code] = true;
+    press(e.code);
   };
   const onKeyUp = (e: KeyboardEvent) => {
-    keys[e.code] = false;
+    release(e.code);
     if (isTypingTarget(e.target) || state === "gameover") return;
     if (GAME_KEYS.has(e.code)) e.preventDefault();
   };
@@ -285,6 +301,12 @@ export function createAsteroidsGame(
       skin = SKINS[id];
       // En pausa el loop está parado: se repinta una vez para que el cambio se vea ya.
       if (paused) draw(ctx);
+    },
+    input(action, isPressed) {
+      const code = ACTION_KEYS[action];
+      if (destroyed || !code) return;
+      if (isPressed) press(code);
+      else release(code);
     },
     pause() {
       if (destroyed || paused) return;

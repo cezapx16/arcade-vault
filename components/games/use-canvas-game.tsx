@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import type { GameAction } from "@/lib/games/input";
 import type { SkinId } from "@/lib/games/skins";
 import { useSkin } from "@/lib/skin";
 export type CanvasEngine = {
@@ -9,6 +10,7 @@ export type CanvasEngine = {
   end: () => void;
   destroy: () => void;
   setSkin: (id: SkinId) => void; // cambia colores y glow en caliente, sin reiniciar la partida
+  input: (action: GameAction, pressed: boolean) => void; // mando táctil: mismas reglas que el teclado
 };
 export type HudCallbacks = {
   onScore: (score: number) => void;
@@ -117,6 +119,8 @@ export function useCanvasGame(
     noKeyboard,
     togglePause: () => setPaused((p) => !p),
     end: () => engineRef.current?.end(),
+    input: (action: GameAction, pressed: boolean) =>
+      engineRef.current?.input(action, pressed),
     restart,
     skin,
     setSkin,

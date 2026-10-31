@@ -20,6 +20,9 @@ export const START_CELLS = [
 export const START_DIR = "right";
 export const START_LIVES = 3;
 export const QUEUE_MAX = 2; // giros guardados en el búfer
+// Aviso de arranque según el dispositivo: teclado o mando táctil.
+export const PROMPT_KEYS = "PULSA W A S D";
+export const PROMPT_TOUCH = "TOCA UNA FLECHA";
 // ── Velocidad: tick de max(60, 140 − (nivel − 1) × 10) ms ──
 export const BASE_TICK = 140;
 export const TICK_STEP = 10;
@@ -54,7 +57,7 @@ export type Palette = {
   bonusBar: string;
   flash: string;
   flashGlow: string;
-  prompt: string; // texto "PULSA W A S D"
+  prompt: string; // texto del aviso de arranque
   fruitFallback: string; // círculo si fruits.png no carga
 };
 // shadowBlur por elemento (px lógicos).
