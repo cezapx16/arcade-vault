@@ -7,15 +7,10 @@ import {
   PLAYER_SIZE,
   PROMPT,
   PROMPT_POS,
-  ROAD_BOT,
   ROZON_FX_MS,
   ROZON_FX_RISE,
   ROZON_PX,
   STREAK_MS,
-  ROAD_TOP,
-  ROW_MEDIAN,
-  ROW_NORTH,
-  ROW_SOUTH,
   STATUS_Y,
   TIME_LOW_MS,
   TRIP_MS,
@@ -24,6 +19,7 @@ import {
   type Skin,
 } from "./constants";
 import { LOOP, LOOP_MAX, LOOP_MIN, speedFor, type Lane } from "./lanes";
+import type { RenderCache } from "./render-cache";
 export type HopDir = "up" | "down" | "left" | "right";
 // x: borde izquierdo de la celda en px (puede no ser múltiplo de 40 tras el arrastre del río).
 // hop: ms que quedan de la animación; off: desplazamiento visual al empezar el salto.
@@ -104,43 +100,23 @@ export function supportOf(lane: Lane, x: number) {
 }
 // ── Dibujo ── (px lógicos; el tablero ocupa y = 0–560)
 const rowY = (row: number) => row * CELL;
+// Tablero cacheado (carriles, líneas y zonas seguras con glow) y encima las rayas de flujo
+// del río, que avanzan con los paquetes de cada carril.
 export function drawBoard(
   ctx: CanvasRenderingContext2D,
   lanes: Lane[],
-  { palette, glow }: Skin,
+  cache: RenderCache,
+  { palette }: Skin,
 ) {
-  // Río de datos y sus rayas de flujo, que avanzan con los paquetes de cada carril.
+  ctx.drawImage(cache.board, 0, 0, W, STATUS_Y);
+  ctx.fillStyle = palette.dataFlow;
   for (const lane of lanes) {
+    if (lane.kind !== "data") continue;
     const y = rowY(lane.row);
-    if (lane.kind === "data") {
-      ctx.fillStyle = palette.data;
-      ctx.fillRect(0, y, W, CELL);
-      const phase = ((lane.xs[0] % CELL) + CELL) % CELL;
-      ctx.fillStyle = palette.dataFlow;
-      for (let x = phase - CELL; x < W; x += CELL)
-        ctx.fillRect(x, y + CELL / 2 - 1, CELL / 2, 2);
-    } else {
-      ctx.fillStyle = palette.road;
-      ctx.fillRect(0, y, W, CELL);
-    }
+    const phase = ((lane.xs[0] % CELL) + CELL) % CELL;
+    for (let x = phase - CELL; x < W; x += CELL)
+      ctx.fillRect(x, y + CELL / 2 - 1, CELL / 2, 2);
   }
-  // Líneas discontinuas entre los carriles de la autopista.
-  ctx.fillStyle = palette.laneLine;
-  for (let row = ROAD_TOP + 1; row <= ROAD_BOT; row++)
-    for (let x = 0; x < W; x += CELL) ctx.fillRect(x + 8, rowY(row) - 1, 24, 2);
-  // Zonas seguras con su borde hacia el peligro.
-  ctx.save();
-  ctx.shadowColor = palette.safeEdge;
-  ctx.shadowBlur = glow.edge;
-  for (const row of [ROW_NORTH, ROW_MEDIAN, ROW_SOUTH]) {
-    const y = rowY(row);
-    ctx.fillStyle = palette.safe;
-    ctx.fillRect(0, y, W, CELL);
-    ctx.fillStyle = palette.safeEdge;
-    if (row !== ROW_NORTH) ctx.fillRect(0, y, W, 2);
-    if (row !== ROW_SOUTH) ctx.fillRect(0, y + CELL - 2, W, 2);
-  }
-  ctx.restore();
 }
 export function drawLane(
   ctx: CanvasRenderingContext2D,

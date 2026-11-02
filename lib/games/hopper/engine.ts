@@ -52,6 +52,7 @@ import {
   type RozonFx,
 } from "./entities";
 import { createLanes, type Lane } from "./lanes";
+import { createRenderCache, type RenderCache } from "./render-cache";
 export type HopperCallbacks = {
   onScore: (score: number) => void; // solo cuando cambia
   onLives: (lives: number) => void; // solo cuando cambia
@@ -354,7 +355,7 @@ export function createHopperGame(
       c.scale(Math.cos(Math.PI * t), 1);
       c.translate(-W / 2, 0);
     }
-    drawBoard(c, lanes, skin);
+    drawBoard(c, lanes, cache, skin);
     for (const lane of lanes) drawLane(c, lane, skin);
     if (shown !== "dying" && shown !== "gameover") drawPlayer(c, player, skin);
     drawParticles(c, particles, DYING_MS, skin);
@@ -396,6 +397,8 @@ export function createHopperGame(
   };
   window.addEventListener("keydown", onKeyDown);
   init();
+  // Tablero y sprites del skin actual: se crean aquí y en setSkin, nunca dentro del loop.
+  let cache: RenderCache = createRenderCache(skin, lanes, dpr);
   emit();
   draw(ctx);
   start();
@@ -403,6 +406,7 @@ export function createHopperGame(
     setSkin(id) {
       if (destroyed) return;
       skin = SKINS[id];
+      cache = createRenderCache(skin, lanes, dpr);
       // En pausa el loop está parado: se repinta una vez.
       if (phase === "paused") draw(ctx);
     },
