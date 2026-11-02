@@ -1,6 +1,6 @@
 # SPEC 12 — Juego de cruce de carriles real en VAIVÉN
 
-> **Estado:** aprobado
+> **Estado:** implementacion 
 > **Depende de:** SPEC 05, SPEC 06, SPEC 07, SPEC 10
 > **Fecha:** 2026-10-30
 > **Objetivo:** Crear VAIVÉN, un juego original de cruce de carriles a saltos con ida y vuelta, volteo del tablero y rozones con multiplicador, y hacerlo jugable en `/games/vaiven/play` como juego nuevo del catálogo, integrado con el HUD, la pausa, el modal de fin y el ranking de la plataforma.
