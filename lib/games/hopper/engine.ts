@@ -3,22 +3,30 @@ import { DEFAULT_SKIN, type SkinId } from "@/lib/games/skins";
 import {
   CELL,
   DYING_MS,
+  FLIP_MS,
   H,
   HOP_MS,
   MAX_DT,
   MAX_SCORE,
   MAX_X,
   PARTICLES,
+  POINTS_ARRIVAL,
+  POINTS_PER_SECOND,
   POINTS_ROW,
+  POINTS_ROZON,
   RIVER_BOT,
   RIVER_TOP,
   ROAD_BOT,
   ROAD_TOP,
   ROW_NORTH,
   ROW_SOUTH,
+  ROZON_FX_MS,
   SKINS,
   START_COL,
   START_LIVES,
+  STATUS_Y,
+  STREAK_MAX,
+  STREAK_MS,
   TRIP_MS,
   W,
 } from "./constants";
@@ -28,15 +36,19 @@ import {
   drawParticles,
   drawPlayer,
   drawPrompt,
-  drawStatusBg,
+  drawRozonFx,
+  drawStatus,
   hitsVehicle,
   laneAt,
   laneSpeed,
+  mirrorLanes,
+  rozonOf,
   stepLanes,
   supportOf,
   type HopDir,
   type Particle,
   type Player,
+  type RozonFx,
 } from "./entities";
 import { createLanes, type Lane } from "./lanes";
 export type HopperCallbacks = {
@@ -107,8 +119,10 @@ export function createHopperGame(
   let progress = 0; // filas nuevas alcanzadas en el viaje (0–13)
   let tripMs = TRIP_MS;
   let streak = 1; // racha x1–x5
-  let phaseMs = 0; // ms restantes de dying
+  let streakMs = 0; // ms hasta que la racha caduca (0 = inactiva)
+  let phaseMs = 0; // ms restantes de dying (800) o flipping (600)
   let particles: Particle[] = [];
+  let rozonFx: RozonFx[] = [];
   let score = 0;
   let lives = START_LIVES;
   // ── Control del loop y avisos a React ──
@@ -130,6 +144,7 @@ export function createHopperGame(
     return { x: START_COL * CELL, row, hop: 0, hopDir: "up", offX: 0, offY: 0 };
   }
   const startRow = () => (heading === "up" ? ROW_SOUTH : ROW_NORTH);
+  const goalRow = () => (heading === "up" ? ROW_NORTH : ROW_SOUTH);
   // Filas avanzadas desde la orilla de salida del viaje.
   const rowsFromStart = (row: number) =>
     heading === "up" ? ROW_SOUTH - row : row;
@@ -145,8 +160,10 @@ export function createHopperGame(
     progress = 0;
     tripMs = TRIP_MS;
     streak = 1;
+    streakMs = 0;
     phaseMs = 0;
     particles = [];
+    rozonFx = [];
     score = 0;
     lives = START_LIVES;
     phase = "ready";
@@ -173,6 +190,7 @@ export function createHopperGame(
     }
     lives--;
     streak = 1;
+    streakMs = 0;
     queued = null;
     if (lives <= 0) return gameOver();
     phase = "dying";
@@ -194,6 +212,8 @@ export function createHopperGame(
     if (d === "up") row = Math.max(ROW_NORTH, row - 1);
     if (d === "down") row = Math.min(ROW_SOUTH, row + 1);
     if (x === player.x && row === player.row) return false;
+    // El rozón se evalúa antes de mover, con las posiciones de este instante.
+    rozon(row);
     player = {
       x,
       row,
@@ -208,7 +228,45 @@ export function createHopperGame(
       addScore(POINTS_ROW * streak * (reached - progress));
       progress = reached;
     }
+    if (row === goalRow()) arrive();
     return true;
+  }
+  // Como mucho un rozón por salto: fila de origen o de destino, solo en la autopista.
+  function rozon(toRow: number) {
+    const hit = [player.row, toRow].some((row) => {
+      const lane = laneAt(lanes, row);
+      return lane && isRoad(row) && rozonOf(lane, player.x);
+    });
+    if (!hit) return;
+    streak = Math.min(STREAK_MAX, streak + 1);
+    streakMs = STREAK_MS;
+    addScore(POINTS_ROZON * streak);
+    rozonFx.push({
+      x: player.x + CELL / 2,
+      y: player.row * CELL,
+      text: `ROZÓN x${streak}`,
+      life: ROZON_FX_MS,
+    });
+  }
+  // Llegada: 100 × viaje + 10 por segundo entero restante, y volteo de 600 ms con todo congelado.
+  function arrive() {
+    addScore(
+      POINTS_ARRIVAL * trip + POINTS_PER_SECOND * Math.floor(tripMs / 1000),
+    );
+    player.hop = 0;
+    queued = null;
+    phase = "flipping";
+    phaseMs = FLIP_MS;
+  }
+  // Fin del volteo: el estado reflejado coincide con la última imagen de la animación.
+  function flip() {
+    mirrorLanes(lanes);
+    player.x = W - player.x - CELL;
+    heading = heading === "up" ? "down" : "up";
+    trip += 1;
+    progress = 0;
+    tripMs = TRIP_MS;
+    phase = "playing";
   }
   // Teclado y mando comparten press: arranque desde la espera y búfer durante la animación.
   function press(code: string) {
@@ -230,6 +288,8 @@ export function createHopperGame(
       p.life -= dt;
     }
     particles = particles.filter((p) => p.life > 0);
+    for (const f of rozonFx) f.life -= dt;
+    rozonFx = rozonFx.filter((f) => f.life > 0);
   }
   // Arrastre del río y muertes con la celda lógica actual (también durante el salto).
   function checkPlayer(dt: number) {
@@ -244,8 +304,13 @@ export function createHopperGame(
       return loseLife();
   }
   function update(dt: number) {
+    // En el volteo todo se congela, también la caducidad de la racha.
+    if (phase === "flipping") {
+      phaseMs -= dt;
+      if (phaseMs <= 0) flip();
+      return;
+    }
     updateParticles(dt);
-    if (phase === "paused" || phase === "flipping") return;
     stepLanes(lanes, dt, trip);
     if (phase === "dying") {
       phaseMs -= dt;
@@ -261,26 +326,41 @@ export function createHopperGame(
         hop(d);
       }
     }
+    if (phase !== "playing") return;
     checkPlayer(dt);
     if (phase !== "playing") return;
+    if (streakMs > 0) {
+      streakMs = Math.max(0, streakMs - dt);
+      if (streakMs === 0) streak = 1;
+    }
     tripMs -= dt;
     if (tripMs <= 0) loseLife();
   }
   // ── Draw ── (sin HUD ni overlays: los pinta la plataforma)
   function draw(c: CanvasRenderingContext2D) {
+    // En pausa se dibuja la fase en la que se pausó.
+    const shown = phase === "paused" ? resumeTo : phase;
     c.fillStyle = skin.palette.bg;
     c.fillRect(0, 0, W, H);
+    c.save();
+    if (shown === "flipping") {
+      // scaleX = cos(π × t): a mitad se ve de canto y luego reflejado, igual que el estado final.
+      const t = 1 - Math.max(0, phaseMs) / FLIP_MS;
+      c.beginPath();
+      c.rect(0, 0, W, STATUS_Y);
+      c.clip();
+      c.translate(W / 2, 0);
+      c.scale(Math.cos(Math.PI * t), 1);
+      c.translate(-W / 2, 0);
+    }
     drawBoard(c, lanes, skin);
     for (const lane of lanes) drawLane(c, lane, skin);
-    const alive =
-      phase === "ready" ||
-      phase === "playing" ||
-      (phase === "paused" && resumeTo !== "dying");
-    if (alive) drawPlayer(c, player, skin);
+    if (shown !== "dying" && shown !== "gameover") drawPlayer(c, player, skin);
     drawParticles(c, particles, DYING_MS, skin);
-    if (phase === "ready" || (phase === "paused" && resumeTo === "ready"))
-      drawPrompt(c, skin);
-    drawStatusBg(c, skin);
+    drawRozonFx(c, rozonFx, skin);
+    c.restore();
+    if (shown === "ready") drawPrompt(c, skin);
+    drawStatus(c, { tripMs, heading, streak, streakMs }, skin);
   }
   // ── Loop ── (en gameover siguen los carriles y las partículas)
   function loop(ts: number) {

@@ -8,11 +8,17 @@ import {
   PROMPT,
   PROMPT_POS,
   ROAD_BOT,
+  ROZON_FX_MS,
+  ROZON_FX_RISE,
+  ROZON_PX,
+  STREAK_MS,
   ROAD_TOP,
   ROW_MEDIAN,
   ROW_NORTH,
   ROW_SOUTH,
   STATUS_Y,
+  TIME_LOW_MS,
+  TRIP_MS,
   VEHICLE_INSET,
   W,
   type Skin,
@@ -35,6 +41,13 @@ export type Particle = {
   vx: number;
   vy: number;
   life: number; // ms restantes
+};
+export type RozonFx = { x: number; y: number; text: string; life: number }; // "ROZÓN x3", 600 ms
+export type Status = {
+  tripMs: number;
+  heading: "up" | "down";
+  streak: number;
+  streakMs: number;
 };
 // ── Reglas ──
 // Mueve todas las entidades y las recicla por el lado contrario al salir del bucle.
@@ -66,6 +79,23 @@ export function hitsVehicle(lane: Lane, x: number) {
   return lane.xs.some(
     (vx) => p.l < vx + lane.len - VEHICLE_INSET && vx + VEHICLE_INSET < p.r,
   );
+}
+// Volteo: cada carril invierte su sentido y cada entidad queda en su posición reflejada.
+export function mirrorLanes(lanes: Lane[]) {
+  for (const lane of lanes) {
+    lane.dir = lane.dir === 1 ? -1 : 1;
+    lane.xs = lane.xs.map((x) => W - x - lane.len);
+  }
+}
+// Rozón: un vehículo de la fila que se acerca al saltador con un hueco de 1 a 16 px entre cajas.
+export function rozonOf(lane: Lane, x: number) {
+  const p = playerBox(x);
+  return lane.xs.some((vx) => {
+    const l = vx + VEHICLE_INSET;
+    const r = vx + lane.len - VEHICLE_INSET;
+    const gap = lane.dir === 1 ? p.l - r : l - p.r;
+    return gap >= 1 && gap <= ROZON_PX;
+  });
 }
 // Paquete bajo el centro del saltador, o -1 si no hay ninguno.
 export function supportOf(lane: Lane, x: number) {
@@ -191,8 +221,66 @@ export function drawPrompt(ctx: CanvasRenderingContext2D, { palette }: Skin) {
   ctx.fillText(PROMPT, PROMPT_POS.x, PROMPT_POS.y);
   ctx.restore();
 }
-// Fondo de la franja de estado (y = 560–600); su contenido llega en el paso 3.
-export function drawStatusBg(ctx: CanvasRenderingContext2D, { palette }: Skin) {
+// Texto "ROZÓN xN" que sube 20 px y se desvanece, con un destello que se abre bajo él.
+export function drawRozonFx(
+  ctx: CanvasRenderingContext2D,
+  fx: RozonFx[],
+  { palette, glow }: Skin,
+) {
+  ctx.save();
+  ctx.font = "bold 16px monospace";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = palette.rozon;
+  ctx.strokeStyle = palette.rozon;
+  ctx.shadowColor = palette.rozon;
+  ctx.shadowBlur = glow.rozon;
+  for (const f of fx) {
+    const t = 1 - f.life / ROZON_FX_MS; // 0 → 1
+    ctx.globalAlpha = 1 - t;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(f.x, f.y + CELL / 2, 14 + 18 * t, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillText(f.text, f.x, f.y - 6 - ROZON_FX_RISE * t);
+  }
+  ctx.restore();
+}
+// Franja de estado (y = 560–600): TIEMPO, sentido del viaje y RACHA. No se voltea.
+export function drawStatus(
+  ctx: CanvasRenderingContext2D,
+  s: Status,
+  { palette, glow }: Skin,
+) {
+  ctx.save();
   ctx.fillStyle = palette.bg;
   ctx.fillRect(0, STATUS_Y, W, H - STATUS_Y);
+  ctx.textBaseline = "middle";
+  ctx.font = "11px monospace";
+  ctx.textAlign = "left";
+  ctx.fillStyle = palette.label;
+  ctx.fillText("TIEMPO", 20, 572);
+  // Barra de 360 px que se vacía en 45 s; con 10 s o menos cambia de color.
+  ctx.fillStyle = palette.safe;
+  ctx.fillRect(20, 582, 360, 6);
+  const timeColor = s.tripMs <= TIME_LOW_MS ? palette.timeLow : palette.timeOk;
+  ctx.fillStyle = timeColor;
+  ctx.shadowColor = timeColor;
+  ctx.shadowBlur = glow.status;
+  ctx.fillRect(20, 582, 360 * Math.max(0, s.tripMs / TRIP_MS), 6);
+  ctx.shadowBlur = 0;
+  ctx.font = "16px monospace";
+  ctx.textAlign = "center";
+  ctx.fillStyle = palette.ink;
+  ctx.fillText(s.heading === "up" ? "▲ IDA" : "▼ VUELTA", 480, 586);
+  ctx.textAlign = "left";
+  ctx.fillStyle = s.streak > 1 ? palette.rozon : palette.text;
+  ctx.fillText(`x${s.streak}`, 620, 586);
+  // Caducidad de la racha: 120 px que se vacían en 3 s. Con x1 no se ve.
+  if (s.streak > 1) {
+    ctx.shadowColor = palette.rozon;
+    ctx.shadowBlur = glow.status;
+    ctx.fillRect(660, 584, 120 * Math.max(0, s.streakMs / STREAK_MS), 4);
+  }
+  ctx.restore();
 }
