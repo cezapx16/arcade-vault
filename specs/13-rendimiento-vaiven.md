@@ -58,13 +58,17 @@ Los cinco motores sustituyen `const dpr = window.devicePixelRatio || 1` por `con
 
 ```ts
 // Imagen pre-renderizada a resolución física; se dibuja en px lógicos.
+// Recuadro ajustado: solo lo que se pinta (cuerpo, haz del faro y glow), sin margen vacío.
 export type Sprite = {
-  canvas: HTMLCanvasElement; // (w + 2·pad) × dpr por (h + 2·pad) × dpr
-  w: number; // ancho lógico sin margen
-  h: number; // alto lógico sin margen
-  pad: number; // margen lógico para el glow (y el haz del faro en los vehículos)
+  canvas: HTMLCanvasElement; // w × dpr por h × dpr
+  ox: number; // esquina del recuadro respecto al origen de la entidad
+  oy: number; // (x del vehículo/paquete e y de su fila, o centro de la partícula)
+  w: number; // ancho lógico del recuadro, glow y haz incluidos
+  h: number; // alto lógico del recuadro, glow incluido
+  pad: number; // margen lógico del glow incluido en el recuadro
 };
 export type RenderCache = {
+  dpr: number;
   board: HTMLCanvasElement; // 800×560 lógicos: carriles, líneas y zonas seguras con glow
   vehicles: Map<string, Sprite>; // clave `${vehicle}:${len}:${dir}`
   packets: Map<number, Sprite>; // clave: len
@@ -80,7 +84,8 @@ export function createRenderCache(
 Convenciones:
 
 - Cada canvas de la caché se crea con `document.createElement("canvas")`, a `tamaño lógico × dpr`, y se dibuja con `setTransform(dpr, 0, 0, dpr, 0, 0)` y los mismos valores de `shadowBlur` que hoy. Así el glow horneado es igual que el actual, que tampoco escala el blur por dpr.
-- Un sprite se dibuja con `ctx.drawImage(s.canvas, x - s.pad, y - s.pad, s.w + 2·s.pad, s.h + 2·s.pad)`. En el volteo funciona igual bajo la transformación `scale(cos(πt), 1)`.
+- Un sprite se dibuja con `blit(ctx, cache, s, x, y)`, que hace `ctx.drawImage(s.canvas, x + s.ox, y + s.oy, s.w, s.h)` con la esquina ajustada a la rejilla de píxeles físicos, para copiar 1:1 sin remuestrear. En el volteo funciona igual bajo la transformación `scale(cos(πt), 1)`.
+- El recuadro es ajustado (paso 4): el haz solo ocupa margen por delante del vehículo y el glow `pad = ⌈1,5 · shadowBlur⌉ + 2` px alrededor. Un coche de 60×28 en neón queda en ~150×66 px en lugar de 192×160 con un `pad` simétrico de 66.
 - La clave del vehículo lleva `dir` porque el haz y los faros van en el frente. Tras el volteo se usa el sprite del sentido contrario. Las combinaciones salen de `LANES` × 2 sentidos y se crean todas al construir la caché, no en mitad de un frame.
 - Las rayas de flujo del río se mueven con los paquetes. Siguen pintándose en cada frame encima del tablero cacheado, con `fillRect` y sin glow.
 - El saltador, el texto ROZÓN y la franja de estado conservan su `shadowBlur`: son pocos dibujos por frame, y el saltador cambia de forma al saltar.
@@ -207,6 +212,7 @@ Notas de la medición base (paso 1, 2026-11-02):
 - **No:** modo "rendimiento" que quite el glow en `pointer: coarse`. Cambia el aspecto. Si la medición final no llega a los umbrales, se decide en otra spec.
 - **Límite de dpr a 2.** Por encima de 2 la diferencia no se aprecia en un canvas de 800×600 escalado por CSS, y el coste del búfer crece con el cuadrado.
 - **Sprites por (vehículo, largo, sentido), todos al crear la caché.** Son pocas combinaciones. Crearlos bajo demanda en mitad de un frame provocaría tirones justo en el primer volteo.
+- **Sprite con recuadro ajustado y no con `pad` simétrico** (decidido en el paso 4). Con un margen simétrico de 66 px (haz + glow) en los cuatro lados, los 18 vehículos mezclarían ~550 000 px transparentes por frame a dpr 1, más que el canvas entero. Se mantienen los campos `w`, `h` y `pad`, y se añaden `ox`/`oy` para la esquina del recuadro.
 - **Rayas de flujo fuera de la caché.** Se mueven con los paquetes. Sin glow cuestan poco.
 - **El saltador, el texto ROZÓN y la franja de estado conservan `shadowBlur`.** Son pocos dibujos por frame, y el rombo se estira al saltar, lo que obligaría a muchos sprites.
 - **No:** `OffscreenCanvas` en un Worker ni WebGL. Es una reescritura del render, desproporcionada para el problema.
@@ -214,13 +220,13 @@ Notas de la medición base (paso 1, 2026-11-02):
 
 ## Riesgos
 
-| Riesgo                                                                  | Mitigación                                                                                                                         |
-| ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| Playwright sin GPU da números peores que un navegador real              | Las columnas "antes" y "después" se miden en el mismo entorno. Lo que importa es la mejora relativa y los umbrales en ese entorno. |
-| El glow horneado se corta en el borde del sprite                        | `pad` ≥ el `shadowBlur` del elemento (más 56 px del haz en el frente de los vehículos). Se comprueba en las capturas.              |
-| El orden de dibujo cambia (rayas de flujo sobre el glow de las orillas) | Las rayas van en el centro de la fila y el glow del borde no llega allí. Se comprueba en las capturas.                             |
-| Con dpr 3 limitado a 2 el canvas se ve algo más suave                   | El canvas ya se escala por CSS. Se revisa en la captura móvil de 390×844.                                                          |
-| La caché se queda con el skin viejo                                     | `setSkin` reconstruye la caché antes de asignar el skin y repinta en pausa. Hay un criterio de aceptación para ello.               |
+| Riesgo                                                                  | Mitigación                                                                                                                             |
+| ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Playwright sin GPU da números peores que un navegador real              | Las columnas "antes" y "después" se miden en el mismo entorno. Lo que importa es la mejora relativa y los umbrales en ese entorno.     |
+| El glow horneado se corta en el borde del sprite                        | `pad` = ⌈1,5 · `shadowBlur`⌉ + 2, y el recuadro incluye los 56 px del haz en el frente de los vehículos. Se comprueba en las capturas. |
+| El orden de dibujo cambia (rayas de flujo sobre el glow de las orillas) | Las rayas van en el centro de la fila y el glow del borde no llega allí. Se comprueba en las capturas.                                 |
+| Con dpr 3 limitado a 2 el canvas se ve algo más suave                   | El canvas ya se escala por CSS. Se revisa en la captura móvil de 390×844.                                                              |
+| La caché se queda con el skin viejo                                     | `setSkin` reconstruye la caché antes de asignar el skin y repinta en pausa. Hay un criterio de aceptación para ello.                   |
 
 ## Qué **no** entra en esta spec
 

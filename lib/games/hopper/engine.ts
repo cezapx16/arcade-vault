@@ -356,9 +356,9 @@ export function createHopperGame(
       c.translate(-W / 2, 0);
     }
     drawBoard(c, lanes, cache, skin);
-    for (const lane of lanes) drawLane(c, lane, skin);
+    for (const lane of lanes) drawLane(c, lane, cache);
     if (shown !== "dying" && shown !== "gameover") drawPlayer(c, player, skin);
-    drawParticles(c, particles, DYING_MS, skin);
+    drawParticles(c, particles, DYING_MS, cache);
     drawRozonFx(c, rozonFx, skin);
     c.restore();
     if (shown === "ready") drawPrompt(c, skin);
