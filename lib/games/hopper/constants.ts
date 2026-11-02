@@ -56,11 +56,14 @@ export type Palette = {
   data: string; // fondo del río
   dataFlow: string; // rayas de flujo del río
   packet: string;
+  bodyAlpha: number; // relleno de paquetes y vehículos (1 = sólido; < 1 = cristal con borde de luz)
   moto: string;
   coche: string;
   camion: string;
   headlight: string;
+  beamAlpha: number; // haz del faro delante del vehículo (0 = sin haz)
   player: string;
+  playerCore: string; // núcleo del rombo
   rozon: string;
   death: string;
   timeOk: string;
@@ -68,6 +71,8 @@ export type Palette = {
   label: string;
   text: string;
   ink: string;
+  plate: string; // placa detrás del aviso de arranque
+  plateEdge: string;
 };
 // shadowBlur por elemento (px lógicos).
 export type Glow = {
@@ -90,11 +95,14 @@ const CLASICO: Skin = {
     data: "#0f0f18", // --bg-2
     dataFlow: "rgba(0,245,255,0.18)", // --line
     packet: "#00f5ff", // --cyan
+    bodyAlpha: 1, // sólido
     moto: "#ff006e", // --magenta
     coche: "#f5ff00", // --yellow
     camion: "#d97a3a", // --bronze
     headlight: "#e6e9ff", // --ink
+    beamAlpha: 0, // sin haz
     player: "#00ff88", // --green
+    playerCore: "#00ff88", // plano: sin núcleo
     rozon: "#ffcf3a", // --gold
     death: "#ff006e", // --magenta
     timeOk: "#00ff88", // --green
@@ -102,14 +110,58 @@ const CLASICO: Skin = {
     label: "#8a8fb5", // --ink-dim (texto de canvas ≥ 4.5:1)
     text: "#8a8fb5", // --ink-dim
     ink: "#e6e9ff", // --ink
+    plate: "#000000", // el aviso se lee sobre los vehículos
+    plateEdge: "#15151f", // --bg-3
   },
   glow: { player: 0, vehicle: 0, packet: 0, edge: 0, rozon: 0, status: 0 },
 };
-// `neon` se fija en el paso 5 con /frontend-design; `retro` y `pastel` los diseña skin-designer.
-// Hasta entonces son copias de `clasico` para que el selector del GameShell funcione.
+// Paleta neón de la plataforma: hex de los tokens de app/globals.css (el canvas no lee variables CSS).
+// La autopista de noche vista desde arriba: nada está pintado, todo es luz. Los vehículos son
+// contornos de neón que proyectan el haz del faro hacia donde van (así se lee de un vistazo si se
+// acercan, que es lo que decide un rozón), los paquetes son bloques de cristal cian con sus bytes
+// marcados, y el punto más caliente de la pantalla es el saltador: rombo verde con núcleo casi blanco.
+const NEON: Skin = {
+  palette: {
+    bg: "#000000",
+    safe: "#0f0f18", // --bg-2: las orillas apenas se separan del asfalto, su borde las marca
+    safeEdge: "#00ff88", // --green (color de VAIVÉN)
+    road: "#0a0a0f", // --bg
+    laneLine: "rgba(255,255,255,0.09)", // --line-2, algo más visible sin glow
+    data: "#05070d", // río más hondo que el asfalto
+    dataFlow: "rgba(0,245,255,0.22)", // --line
+    packet: "#00f5ff", // --cyan
+    bodyAlpha: 0.2, // cristal: el borde de luz da el contraste
+    moto: "#ff006e", // --magenta
+    coche: "#f5ff00", // --yellow
+    camion: "#d97a3a", // --bronze
+    headlight: "#e6e9ff", // --ink
+    beamAlpha: 0.28,
+    player: "#00ff88", // --green
+    playerCore: "#eafff4", // verde casi blanco
+    rozon: "#ffcf3a", // --gold
+    death: "#ff006e", // --magenta
+    timeOk: "#00ff88", // --green
+    timeLow: "#ff006e", // --magenta
+    label: "#8a8fb5", // --ink-dim
+    text: "#8a8fb5", // --ink-dim
+    ink: "#e6e9ff", // --ink
+    plate: "rgba(0,0,0,0.82)",
+    plateEdge: "rgba(0,255,136,0.55)", // --green apagado
+  },
+  glow: {
+    player: 18,
+    vehicle: 10,
+    packet: 0, // 15 paquetes con shadowBlur bajan los FPS; el borde ya brilla sin él
+    edge: 8,
+    rozon: 14,
+    status: 6,
+  },
+};
+// `retro` y `pastel` los diseña skin-designer; hasta entonces son copias de `clasico`
+// para que el selector del GameShell funcione.
 export const SKINS: Record<SkinId, Skin> = {
   clasico: CLASICO,
-  neon: CLASICO,
+  neon: NEON,
   retro: CLASICO,
   pastel: CLASICO,
 };

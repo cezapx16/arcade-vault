@@ -148,23 +148,60 @@ export function drawLane(
   { palette, glow }: Skin,
 ) {
   const y = rowY(lane.row);
+  const glass = palette.bodyAlpha < 1;
   ctx.save();
   if (lane.kind === "data") {
-    // Paquete de datos: 30 px de alto.
-    ctx.fillStyle = palette.packet;
+    // Paquete de datos: 30 px de alto. En cristal, con un byte marcado cada 20 px.
+    ctx.strokeStyle = ctx.fillStyle = palette.packet;
     ctx.shadowColor = palette.packet;
     ctx.shadowBlur = glow.packet;
-    for (const x of lane.xs) ctx.fillRect(x, y + 5, lane.len, 30);
+    ctx.lineWidth = 2;
+    for (const x of lane.xs) {
+      ctx.globalAlpha = palette.bodyAlpha;
+      ctx.fillRect(x, y + 5, lane.len, 30);
+      if (!glass) continue;
+      ctx.globalAlpha = 0.45;
+      for (let bx = x + 20; bx < x + lane.len; bx += 20)
+        ctx.fillRect(bx - 1, y + 11, 2, 18);
+      ctx.globalAlpha = 1;
+      ctx.strokeRect(x + 1, y + 6, lane.len - 2, 28);
+    }
   } else {
     // Vehículo: 28 px de alto, con el faro en el frente según el sentido.
     const color = palette[lane.vehicle ?? "coche"];
     for (const x of lane.xs) {
+      const front = lane.dir === 1 ? x + lane.len : x;
+      // Haz del faro: dice hacia dónde va el vehículo antes de que llegue.
+      if (palette.beamAlpha > 0) {
+        const reach = front + lane.dir * 56;
+        const beam = ctx.createLinearGradient(front, 0, reach, 0);
+        beam.addColorStop(0, palette.headlight);
+        beam.addColorStop(1, "transparent");
+        ctx.globalAlpha = palette.beamAlpha;
+        ctx.fillStyle = beam;
+        ctx.beginPath();
+        ctx.moveTo(front, y + 12);
+        ctx.lineTo(reach, y + 4);
+        ctx.lineTo(reach, y + 36);
+        ctx.lineTo(front, y + 28);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.globalAlpha = palette.bodyAlpha;
       ctx.fillStyle = color;
       ctx.shadowColor = color;
-      ctx.shadowBlur = glow.vehicle;
-      ctx.fillRect(x, y + 6, lane.len, 28);
-      ctx.fillStyle = palette.headlight;
       ctx.shadowBlur = 0;
+      ctx.fillRect(x, y + 6, lane.len, 28);
+      ctx.globalAlpha = 1;
+      if (glass) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.shadowBlur = glow.vehicle;
+        ctx.strokeRect(x + 1, y + 7, lane.len - 2, 26);
+      }
+      ctx.fillStyle = palette.headlight;
+      ctx.shadowColor = palette.headlight;
+      ctx.shadowBlur = glow.vehicle / 2;
       const fx = lane.dir === 1 ? x + lane.len - 6 : x + 2;
       ctx.fillRect(fx, y + 10, 4, 6);
       ctx.fillRect(fx, y + 24, 4, 6);
@@ -196,28 +233,49 @@ export function drawPlayer(
   ctx.lineTo(cx - hw, cy);
   ctx.closePath();
   ctx.fill();
+  // Núcleo: el punto más caliente de la pantalla.
+  if (palette.playerCore !== palette.player) {
+    ctx.fillStyle = palette.playerCore;
+    ctx.shadowBlur = glow.player / 3;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - hh * 0.42);
+    ctx.lineTo(cx + hw * 0.42, cy);
+    ctx.lineTo(cx, cy + hh * 0.42);
+    ctx.lineTo(cx - hw * 0.42, cy);
+    ctx.closePath();
+    ctx.fill();
+  }
   ctx.restore();
 }
 export function drawParticles(
   ctx: CanvasRenderingContext2D,
   particles: Particle[],
   max: number,
-  { palette }: Skin,
+  { palette, glow }: Skin,
 ) {
   ctx.save();
   ctx.fillStyle = palette.death;
+  ctx.shadowColor = palette.death;
+  ctx.shadowBlur = glow.vehicle;
   for (const p of particles) {
     ctx.globalAlpha = Math.max(0, p.life / max);
     ctx.fillRect(p.x - 3, p.y - 3, 6, 6);
   }
   ctx.restore();
 }
+// Aviso de arranque sobre una placa: en y = 500 pasan las motos de la fila 12.
 export function drawPrompt(ctx: CanvasRenderingContext2D, { palette }: Skin) {
   ctx.save();
-  ctx.fillStyle = palette.ink;
   ctx.font = "20px monospace";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
+  const w = ctx.measureText(PROMPT).width + 32;
+  ctx.fillStyle = palette.plate;
+  ctx.fillRect(PROMPT_POS.x - w / 2, PROMPT_POS.y - 16, w, 32);
+  ctx.strokeStyle = palette.plateEdge;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(PROMPT_POS.x - w / 2 + 0.5, PROMPT_POS.y - 15.5, w - 1, 31);
+  ctx.fillStyle = palette.ink;
   ctx.fillText(PROMPT, PROMPT_POS.x, PROMPT_POS.y);
   ctx.restore();
 }
