@@ -144,6 +144,6 @@ El id ya está en `games` (seed de la SPEC 06) y en `GAMES` (`app/data/games.ts`
 - GUARDAR PUNTUACIÓN: "GUARDANDO…" y luego "▸ PUNTUACIÓN GUARDADA_", con fila nueva en `scores` con `game_id = '<id>'` (`execute_sql`).
 - La puntuación aparece en el TOP 10 de `/games/<id>` y en la pestaña de `/salon` sin recargar la caché, y coincide con `leaderboard('<id>', 10)`.
 - Al salir de la ruta no quedan listeners ni loop (flechas y Espacio hacen scroll con normalidad).
-- Emulación táctil (contexto de Playwright con `hasTouch`/`isMobile`, vertical y horizontal): `<canvas>` y mando con las flechas y botones del `TouchLayout`, cada botón hace lo mismo que su tecla, el mando no responde en pausa ni con el modal, y el CRT y el mando caben en pantalla. En escritorio no hay mando.
+- Emulación táctil (contexto de Playwright con `hasTouch`/`isMobile`, vertical y horizontal): `<canvas>` y mando con las flechas y botones del `TouchLayout`, cada botón hace lo mismo que su tecla, el mando no responde en pausa ni con el modal, y el CRT y el mando caben en pantalla. En escritorio no hay mando. Tras implementar un juego nuevo, el subagente `mobile-porter` audita (y completa si falta) este contrato táctil y lo verifica en escritorio y en el móvil en vertical y horizontal.
 - Nitidez con `devicePixelRatio` 2 y colores de `PALETTE`.
 - Juego nuevo: aparece en `/games` en su `sort_order`, filtra por su categoría, y sin variables de Supabase sale del respaldo con MEJOR PUNTUACIÓN 0.

@@ -1,13 +1,13 @@
 # SPEC GJ-vaiven-02 — Amenazas y ayudas por viaje en VAIVÉN
 
 > **Estado:** Draft
-> **Depende de:** SPEC 05, SPEC 06, SPEC 07, SPEC GJ-vaiven-01
+> **Depende de:** SPEC 05, SPEC 06, SPEC 07, SPEC 12
 > **Fecha:** 2026-10-30
 > **Objetivo:** Añadir a VAIVÉN cuatro novedades que se desbloquean en los viajes 3, 4, 5 y 6 (paquetes que se comprimen, ráfagas de carril, ralentí y mediana electrificada), anunciadas durante el volteo, para que cada ida y vuelta se juegue distinto además de ir más rápido.
 
 ## Por qué existe esta spec
 
-Tras la SPEC GJ-vaiven-01, VAIVÉN es jugable de principio a fin, pero todos los viajes son el mismo tablero, reflejado y algo más rápido. A partir del viaje 6 o 7 la única novedad es la velocidad, y la partida se vuelve monótona justo cuando la racha y la puntuación empiezan a importar.
+Tras la SPEC 12, VAIVÉN es jugable de principio a fin, pero todos los viajes son el mismo tablero, reflejado y algo más rápido. A partir del viaje 6 o 7 la única novedad es la velocidad, y la partida se vuelve monótona justo cuando la racha y la puntuación empiezan a importar.
 
 El tema del jam es cruzar carriles a saltos, y la idea del usuario es que cada viaje sea más difícil que el anterior. Esta spec convierte esa progresión en un calendario: cada viaje del 3 al 6 desbloquea una novedad que se queda para el resto de la partida, y el volteo la anuncia. Tres son amenazas (en el río, en la autopista y en la mediana) y una es una ayuda, para que el jugador tenga algo que buscar cuando la velocidad aprieta.
 
@@ -30,7 +30,7 @@ Las cuatro se diseñaron para no recordar a ningún juego comercial del género:
 - **Paquetes que se comprimen** (viaje ≥ 3):
   - En las filas 2 y 4 del río, el primer paquete de cada carril (índice 0) es **comprimible** y se dibuja con rayas diagonales.
   - Ciclo de **4000 ms**: 2400 ms a su largo completo, 600 ms encogiendo hasta el **35 %**, 400 ms al 35 % y 600 ms creciendo de nuevo. Se encoge y crece desde su centro.
-  - El soporte de la SPEC GJ-vaiven-01 usa el largo actual: si el centro del saltador queda fuera del paquete comprimido, se pierde una vida.
+  - El soporte de la SPEC 12 usa el largo actual: si el centro del saltador queda fuera del paquete comprimido, se pierde una vida.
   - Cada paquete comprimible empieza su ciclo desfasado 2000 ms respecto al del otro carril.
 - **Ráfagas de carril** (viaje ≥ 4):
   - Cada **7000 ms** de `playing`, un carril de la autopista elegido al azar recibe una ráfaga. Nunca hay dos a la vez y nunca repite el carril de la ráfaga anterior.
@@ -52,17 +52,17 @@ Las cuatro se diseñaron para no recordar a ningún juego comercial del género:
 - **Reflejo en el volteo:** los paquetes comprimibles se reflejan con su carril, las ráfagas en curso se cancelan y el reloj de arena se refleja (`col' = 19 − col`). Los grupos A y B no cambian porque son simétricos, y el ciclo de la mediana sigue donde estaba.
 - **Pausa, volteo y explosión** congelan todos los temporizadores nuevos: ciclo de compresión, ráfagas, ralentí, reloj de arena y mediana.
 - `restart()` vuelve al viaje 1 sin ninguna novedad activa.
-- Lo nuevo se dibuja con la paleta de la GJ-vaiven-01 y glow, con los detalles visuales fijados por `/frontend-design`.
+- Lo nuevo se dibuja con la paleta de la SPEC 12 y glow, con los detalles visuales fijados por `/frontend-design`.
 
 **Fuera de alcance (specs futuras):**
 
 - Más novedades a partir del viaje 7 o novedades aleatorias.
 - Otras ayudas (vida extra, escudo, salto doble).
-- Cambiar las reglas base de la SPEC GJ-vaiven-01: saltos, rozón, racha, tiempo, puntos de avance y de llegada, volteo y velocidad por viaje.
+- Cambiar las reglas base de la SPEC 12: saltos, rozón, racha, tiempo, puntos de avance y de llegada, volteo y velocidad por viaje.
 - Ampliar `GameShell` o mostrar las novedades fuera del canvas.
 - Un selector de viaje inicial o cualquier forma de saltar viajes.
 - Cambios en el catálogo, la cover o el ranking.
-- Controles táctiles, sonido y mute.
+- Cambios en el mando táctil (la SPEC 01 ya lo trae), sonido y mute.
 - Auth real, antitrampas y test runner.
 
 ## Modelo de datos
@@ -94,11 +94,11 @@ type Hazards = {
 
 - `unlocked(trip)` devuelve qué novedades están activas: compresión si `trip ≥ 3`, ráfagas si `trip ≥ 4`, ralentí si `trip ≥ 5` y mediana si `trip ≥ 6`.
 - La velocidad de un carril pasa a ser `base × speedFor(trip) × (ráfaga ? 1.8 : 1) × (slowMs > 0 ? 0.6 : 1)`.
-- `supportOf` de la GJ-vaiven-01 recibe el largo actual de cada paquete: `len × squeezeFactor(phaseMs)` para los comprimibles y `len` para el resto.
+- `supportOf` de la SPEC 12 recibe el largo actual de cada paquete: `len × squeezeFactor(phaseMs)` para los comprimibles y `len` para el resto.
 - `rozonOf` devuelve también si el vehículo era de un carril en ráfaga, para doblar los puntos.
 - Al empezar cada viaje (tras el volteo o al empezar la partida): `hourglassSpawnMs = 3000`, `hourglass = null`, `gust = null`, `gustCooldown = 7000`. `slowMs` y el ciclo de la mediana siguen donde estaban.
 - Al perder una vida: `hourglass = null` y `hourglassSpawnMs = −1` hasta el siguiente viaje.
-- La muerte en la mediana electrificada usa la misma explosión y reaparición de la GJ-vaiven-01.
+- La muerte en la mediana electrificada usa la misma explosión y reaparición de la SPEC 12.
 
 ### Novedades (`lib/games/hopper/hazards.ts`)
 
@@ -195,7 +195,7 @@ export function drawBanner(
 
 ```ts
 export const PALETTE = {
-  // …igual que en la SPEC GJ-vaiven-01
+  // …igual que en la SPEC 12
   squeeze: "#00f5ff", // --cyan, rayas con menos alpha
   gust: "#ff006e", // --magenta (aviso y línea del carril)
   hourglass: "#ffcf3a", // --gold
@@ -221,7 +221,7 @@ lib/games/hopper/constants.ts    (modificado: PALETTE y GLOW)
 1. **Base de novedades sin efectos.**
    - Crear `lib/games/hopper/hazards.ts` con las constantes, `unlocked`, `squeezeFactor`, `pickGustRow`, `pickHourglassCol`, `mirrorCol`, `createHazards` y `stepHazards`.
    - Añadir `hazards` al estado del motor y congelar sus temporizadores en pausa, volteo y explosión. Todavía no cambian nada del juego.
-   - Resultado: `npm run build` y `npm run lint` pasan, y `/games/vaiven/play` se juega igual que con la GJ-vaiven-01.
+   - Resultado: `npm run build` y `npm run lint` pasan, y `/games/vaiven/play` se juega igual que con la SPEC 12.
 2. **Paquetes que se comprimen.**
    - Aplicar `squeezeFactor` al largo de los paquetes comprimibles de las filas 2 y 4 desde el viaje 3, en el soporte y en el dibujo (con colores planos).
    - Reflejarlos en el volteo con su carril.
@@ -249,7 +249,7 @@ lib/games/hopper/constants.ts    (modificado: PALETTE y GLOW)
 - [ ] `app/games/[id]/play/page.tsx`, `components/games/game-shell.tsx`, `components/games/use-canvas-game.tsx`, `components/games/hopper-game.tsx`, `app/data/games.ts`, `app/globals.css` y `lib/games/hopper/lanes.ts` no aparecen en `git diff`.
 - [ ] No hay migraciones nuevas en `supabase/migrations/`.
 - [ ] Los demás juegos (reales y simulados) funcionan igual que antes.
-- [ ] Todos los criterios de la SPEC GJ-vaiven-01 siguen cumpliéndose. En los viajes 1 y 2 no aparece ninguna novedad.
+- [ ] Todos los criterios de la SPEC 12 siguen cumpliéndose. En los viajes 1 y 2 no aparece ninguna novedad.
 - [ ] El HUD de React sigue mostrando solo PUNTUACIÓN, VIDAS y NIVEL. Nada de lo nuevo se dibuja fuera del canvas.
 - [ ] En el volteo que lleva al viaje 3 aparece "VIAJE 03 · PAQUETES COMPRIMIBLES" y desaparece unos 1,5 s después. Los anuncios de los viajes 4, 5 y 6 dicen "VIAJE 04 · RÁFAGAS", "VIAJE 05 · RALENTÍ" y "VIAJE 06 · MEDIANA ELECTRIFICADA". El volteo al viaje 7 no muestra anuncio.
 - [ ] Desde el viaje 3, un paquete de la fila 2 y otro de la fila 4 tienen rayas diagonales y cada 4 s se encogen hasta un 35 % de su largo y vuelven a crecer, sin moverse de su centro.
@@ -271,7 +271,7 @@ lib/games/hopper/constants.ts    (modificado: PALETTE y GLOW)
 ## Decisiones
 
 - **Sí:** cuatro novedades fijas que se desbloquean en los viajes 3, 4, 5 y 6 y se quedan activas. **No:** novedades aleatorias por viaje, que harían el ranking más dependiente de la suerte. Pedido en el tema ("cada viaje más difícil"); el calendario es de las recomendaciones (pendiente de confirmar).
-- **Sí:** los viajes 1 y 2 son exactamente los de la GJ-vaiven-01, para que la primera ida y vuelta enseñe las reglas base. Tomado de las recomendaciones.
+- **Sí:** los viajes 1 y 2 son exactamente los de la SPEC 12, para que la primera ida y vuelta enseñe las reglas base. Tomado de las recomendaciones.
 - **Sí:** paquetes que se comprimen desde su centro al 35 %. **No:** paquetes que desaparecen o se hunden, porque es una mecánica reconocible de un juego comercial del género. Tomado de las recomendaciones.
 - **Sí:** ráfagas avisadas 800 ms antes y rozón doble en un carril en ráfaga. Liga la nueva amenaza con el giro del tema (el rozón). **No:** ráfagas sin aviso, que serían injustas a ×2.0. Tomado de las recomendaciones.
 - **Sí:** el ralentí como única ayuda, en la mediana y una vez por viaje. Da algo que buscar cuando la velocidad aprieta y obliga a pasar por la mediana. **No:** vida extra, que alargaría las partidas sin cambiar la forma de jugar. Tomado de las recomendaciones (pendiente de confirmar).
@@ -295,7 +295,7 @@ lib/games/hopper/constants.ts    (modificado: PALETTE y GLOW)
 | Los temporizadores nuevos corren durante la pausa, el volteo o la explosión                  | `stepHazards` solo se llama en `playing`. Hay criterios de pausa y de cambio de pestaña.                                                                                    |
 | El volteo descoloca la mediana electrificada o deja el reloj de arena en una celda peligrosa | `GRID_A`, `GRID_B` y las columnas seguras son simétricos, así que el reflejo no cambia qué celdas se encienden. Se comprueba en el paso 5.                                  |
 | Llegar al viaje 6 para probar lleva demasiado tiempo                                         | Cambio temporal y no versionado del viaje inicial durante la verificación. El usuario hace además una partida real.                                                         |
-| La 02 rompe algo de la 01 (soporte, rozón, puntos de llegada)                                | Paso 1 sin efectos y criterio de que todos los de la GJ-vaiven-01 siguen cumpliéndose. Los viajes 1 y 2 no activan nada.                                                    |
+| La 02 rompe algo de la 01 (soporte, rozón, puntos de llegada)                                | Paso 1 sin efectos y criterio de que todos los de la SPEC 12 siguen cumpliéndose. Los viajes 1 y 2 no activan nada.                                                    |
 | `shadowBlur` en los arcos de la mediana y las rayas de compresión baja los FPS               | Glow solo en las celdas encendidas, el reloj de arena y el aviso de ráfaga. Hay un criterio de 60 fps con todas las novedades activas.                                      |
 | Alguna novedad recuerda demasiado a un juego comercial del género                            | Pregunta abierta 12 del README. Cada novedad está aislada en `hazards.ts` y se puede cambiar sin tocar las demás.                                                           |
 
@@ -303,11 +303,11 @@ lib/games/hopper/constants.ts    (modificado: PALETTE y GLOW)
 
 - Novedades a partir del viaje 7 o aleatorias.
 - Vida extra, escudo, salto doble u otras ayudas.
-- Cambios en las reglas base de la SPEC GJ-vaiven-01.
+- Cambios en las reglas base de la SPEC 12.
 - Cambios en `GameShell`, `useCanvasGame`, `CanvasScreen` o el componente del juego.
 - Selector de viaje inicial.
 - Catálogo, cover, textos o ranking.
-- Controles táctiles, sonido y mute.
+- Cambios en el mando táctil (la SPEC 01 ya lo trae), sonido y mute.
 - Auth, antitrampas y test runner.
 
 Cada una de estas cosas, si llega, irá en su propia spec.

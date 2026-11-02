@@ -1,7 +1,7 @@
-# SPEC GJ-vaiven-01 — Juego de cruce de carriles real en VAIVÉN
+# SPEC 12 — Juego de cruce de carriles real en VAIVÉN
 
-> **Estado:** Draft
-> **Depende de:** SPEC 05, SPEC 06, SPEC 07
+> **Estado:** implementacion 
+> **Depende de:** SPEC 05, SPEC 06, SPEC 07, SPEC 10
 > **Fecha:** 2026-10-30
 > **Objetivo:** Crear VAIVÉN, un juego original de cruce de carriles a saltos con ida y vuelta, volteo del tablero y rozones con multiplicador, y hacerlo jugable en `/games/vaiven/play` como juego nuevo del catálogo, integrado con el HUD, la pausa, el modal de fin y el ranking de la plataforma.
 
@@ -18,7 +18,7 @@ No hay código de referencia en `references/started-games/`. El juego se diseña
 
 Es un diseño original dentro del género: no hay casillas de llegada, ranas, troncos, tortugas ni nenúfares. El jugador es un rombo de luz, los obstáculos son vehículos de neón y las plataformas son paquetes de datos.
 
-Esta spec convierte VAIVÉN en el quinto juego real de Arcade Vault y el primero que entra como juego nuevo, con migración de catálogo y cover propia. Usa el hook `useCanvasGame` y el componente `CanvasScreen` de la SPEC 07 sin cambiarlos. El leaderboard se hereda de la SPEC 06 sin código nuevo.
+Esta spec convierte VAIVÉN en el quinto juego real de Arcade Vault y el primero que entra como juego nuevo, con migración de catálogo y cover propia. Usa el hook `useCanvasGame` y el componente `CanvasScreen` de la SPEC 07 sin cambiarlos, y nace con el contrato táctil de la SPEC 10 (`input` + `TouchLayout`) y el de skins (`setSkin` + `SKINS`). El leaderboard se hereda de la SPEC 06 sin código nuevo.
 
 ## Alcance
 
@@ -47,19 +47,21 @@ Esta spec convierte VAIVÉN en el quinto juego real de Arcade Vault y el primero
   - **Arranque en espera:** al empezar la partida, los carriles se mueven pero el tiempo no corre hasta el primer salto. El canvas muestra "PULSA ↑ PARA SALIR" sobre la orilla sur.
   - **Sin victoria.** Los viajes se repiten sin fin.
 - El `dt` del frame se limita a 50 ms. A ×2.0 el carril más rápido (110 px/s) recorre 11 px por frame en el peor caso, menos que la caja del saltador (26 px).
-- API del motor `createHopperGame(canvas, callbacks)`, que devuelve `pause / resume / restart / end / destroy`. `destroy` cancela el `requestAnimationFrame` y quita todos los listeners.
+- API del motor `createHopperGame(canvas, callbacks, skin = DEFAULT_SKIN)`, que devuelve `pause / resume / restart / end / destroy / setSkin / input`. `destroy` cancela el `requestAnimationFrame` y quita todos los listeners.
+- **Entrada táctil (SPEC 10):** `input(action, pressed)` con `GameAction` de `lib/games/input.ts`. Un mapa `ACTION_KEYS` (`up → ArrowUp`, `down → ArrowDown`, `left → ArrowLeft`, `right → ArrowRight`) lleva cada acción a la misma función interna de salto que el teclado, con las mismas guardas (pausa, `flipping`, `dying`, `gameover`, `destroy`). Un salto por `pressed = true`; `pressed = false` no hace nada. Se ignoran `a` y `b`. Nunca se simulan `KeyboardEvent`.
+- **Skins:** `constants.ts` exporta `SKINS: Record<SkinId, { palette, glow }>`. En esta spec se crean `clasico` (por defecto, los colores planos del paso 2) y `neon` (la paleta del paso 5). `setSkin(id)` cambia colores y glow desde el siguiente frame sin tocar la partida. `retro` y `pastel` los añade `skin-designer` después de la spec.
 - El motor avisa a React solo cuando cambian `score`, `lives` o `level`, y una vez en game over.
 - En el canvas solo se dibuja jugabilidad: el tablero, las entidades, el saltador, la explosión, el destello y el texto del rozón, el aviso de arranque, el volteo y la franja de estado con la barra de **TIEMPO**, el **sentido del viaje** (▲ IDA / ▼ VUELTA) y la **RACHA** (x1–x5 con su barra de caducidad). No se dibujan puntuación, vidas, nivel ni overlays de pausa o fin.
 - `preventDefault` en `ArrowUp`, `ArrowDown`, `ArrowLeft` y `ArrowRight` mientras se juega, para que la página no haga scroll. Nunca se aplica con el foco en un `input` o `textarea`, ni en pausa ni en `gameover`. WASD no lo necesita. Las teclas se leen por `e.code`.
 - Al pausar se vacía el búfer de salto, y durante la pausa el motor ignora el teclado.
 - Resolución lógica fija de 800×600 (4:3), escalada con CSS al `.crt-screen`, con el buffer multiplicado por `devicePixelRatio`.
-- Todo se dibuja en canvas con la paleta neón de la plataforma y glow (`shadowBlur`), diseñado con `/frontend-design`. No hay assets.
-- Componente cliente `components/games/hopper-game.tsx`, que usa `useCanvasGame` y `CanvasScreen` y conecta el motor con `GameShell`.
+- Todo se dibuja en canvas con primitivas, con el skin activo y glow (`shadowBlur`), diseñado con `/frontend-design`. No hay assets.
+- Componente cliente `components/games/hopper-game.tsx`, que usa `useCanvasGame` y `CanvasScreen` y conecta el motor con `GameShell` (con `skin`/`onSkinChange`), igual que `snake-game.tsx`. Declara `TOUCH: TouchLayout = { dpad: ["up", "left", "down", "right"], buttons: [] }`, sin `repeat` (un salto por toque), y pasa `controls={touch && <TouchPad layout={TOUCH} onInput={input} disabled={paused || over} />}`.
 - Ruta estática `app/games/vaiven/play/page.tsx`, que tiene prioridad sobre `app/games/[id]/play/page.tsx`. La ruta genérica no se toca.
 - Pausa por tres vías con un único estado de React (la del hook): botón PAUSA/REANUDAR, teclas `P`/`Escape` y `visibilitychange`.
 - Fin de partida: `onLives(0)` y luego `onGameOver(score)`, que abre el modal "FIN DEL JUEGO". FIN llama a `end()` y JUGAR DE NUEVO a `restart()`.
 - GUARDAR PUNTUACIÓN usa `submitScore` (heredado de `GameShell`). La puntuación aparece en el TOP 10 de `/games/vaiven` y en la pestaña VAIVÉN de `/salon`.
-- En dispositivos sin teclado (`(hover: none) and (pointer: coarse)`), el CRT muestra "REQUIERE TECLADO" y el motor no se crea. Viene de `CanvasScreen`.
+- En táctil (`(pointer: coarse)`) el motor se crea igual, se ve el mando con las cuatro flechas bajo el CRT y el teclado sigue funcionando. El aviso de arranque "PULSA ↑ PARA SALIR" vale para la tecla y para la flecha del mando.
 - Juego nuevo en el catálogo:
   - Fila `vaiven` en `games` por migración, en `sort_order` 9 (el máximo actual es 8).
   - Entrada de respaldo en `GAMES` de `app/data/games.ts`, al final.
@@ -69,7 +71,8 @@ Esta spec convierte VAIVÉN en el quinto juego real de Arcade Vault y el primero
 **Fuera de alcance (specs futuras):**
 
 - Las novedades por viaje: paquetes que se comprimen, ráfagas de carril, ralentí y mediana electrificada (SPEC GJ-vaiven-02).
-- Controles táctiles.
+- Gestos (deslizar para saltar), pantalla completa o PWA.
+- Los skins `retro` y `pastel` (los añade `skin-designer` tras la spec).
 - Sonido, música o botón de mute.
 - Vidas extra, power-ups, casillas de llegada o cualquier mecánica que no esté en esta spec.
 - Rozones con los paquetes del río.
@@ -99,11 +102,14 @@ export type HopperGame = {
   restart: () => void; // viaje 1, 3 vidas, 0 puntos, racha x1, carriles iniciales, fase ready; reemite los valores iniciales
   end: () => void; // fuerza game over con la puntuación actual → onLives(0) + onGameOver
   destroy: () => void; // cancela rAF y quita listeners; idempotente
+  setSkin: (id: SkinId) => void; // cambia colores y glow desde el siguiente frame, sin tocar la partida
+  input: (action: GameAction, pressed: boolean) => void; // mando táctil: mismas reglas que el teclado
 };
 
 export function createHopperGame(
   canvas: HTMLCanvasElement,
   callbacks: HopperCallbacks,
+  skin?: SkinId, // DEFAULT_SKIN
 ): HopperGame;
 ```
 
@@ -234,7 +240,7 @@ export function createLanes(): Lane[]; // posiciones iniciales del viaje 1
 
 | Archivo                         | Contenido                                                                                                                                                                                                                                                                                                                                                               |
 | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `lib/games/hopper/constants.ts` | `W`, `H`, `COLS = 20`, `ROWS = 14`, `CELL = 40`, `STATUS_Y = 560`, `START_COL = 10`, `START_LIVES = 3`, `HOP_MS = 90`, `TRIP_MS = 45000`, `FLIP_MS = 600`, `DYING_MS = 800`, `ROZON_PX = 16`, `STREAK_MAX = 5`, `STREAK_MS = 3000`, `POINTS_ROW = 10`, `POINTS_ROZON = 50`, `POINTS_ARRIVAL = 100`, `POINTS_PER_SECOND = 10`, `MAX_SCORE = 9999999`, `PALETTE` y `GLOW` |
+| `lib/games/hopper/constants.ts` | `W`, `H`, `COLS = 20`, `ROWS = 14`, `CELL = 40`, `STATUS_Y = 560`, `START_COL = 10`, `START_LIVES = 3`, `HOP_MS = 90`, `TRIP_MS = 45000`, `FLIP_MS = 600`, `DYING_MS = 800`, `ROZON_PX = 16`, `STREAK_MAX = 5`, `STREAK_MS = 3000`, `POINTS_ROW = 10`, `POINTS_ROZON = 50`, `POINTS_ARRIVAL = 100`, `POINTS_PER_SECOND = 10`, `MAX_SCORE = 9999999`, `SKINS` (`clasico`, `neon`) |
 | `lib/games/hopper/lanes.ts`     | `LANES`, `LOOP`, `speedFor(trip)` y `createLanes()`                                                                                                                                                                                                                                                                                                                     |
 | `lib/games/hopper/entities.ts`  | Funciones puras: `stepLanes`, `mirrorLanes`, `hitsVehicle`, `supportOf`, `rozonOf`, y `drawBoard`, `drawLane`, `drawPlayer`, `drawParticles`, `drawRozonFx`, `drawPrompt` y `drawStatus`, que reciben `ctx`                                                                                                                                                             |
 | `lib/games/hopper/engine.ts`    | Estado, entrada, `update`, `draw` (con la transformación del volteo), loop y `createHopperGame`                                                                                                                                                                                                                                                                         |
@@ -243,10 +249,10 @@ export function createLanes(): Lane[]; // posiciones iniciales del viaje 1
 
 ### Paleta
 
-`PALETTE` usa los hex de los tokens de `app/globals.css`, porque el canvas no lee variables CSS. Los colores finales los decide `/frontend-design`, partiendo de esta propuesta:
+La paleta de abajo es la del skin `neon` (`SKINS.neon.palette`). `SKINS.clasico` tiene las mismas claves con los colores planos del paso 2 y es el skin por defecto. Los hex son copias de los tokens de `app/globals.css`, porque el canvas no lee variables CSS. Los colores finales los decide `/frontend-design`, partiendo de esta propuesta:
 
 ```ts
-export const PALETTE = {
+const NEON_PALETTE = { // SKINS.neon.palette
   bg: "#000",
   safe: "#15151f", // --bg-3 (orillas y mediana)
   safeEdge: "#00ff88", // --green (color de VAIVÉN)
@@ -312,16 +318,17 @@ app/globals.css                                       (modificado: cover-vaiven)
    - Crear `constants.ts`, `lanes.ts`, `entities.ts` y `engine.ts` con el tablero, los 11 carriles, el arrastre del río, los saltos con búfer, las muertes (vehículo, río, borde, tiempo), las vidas con explosión y reaparición, el avance por filas y la fase `ready`. En este paso todo se dibuja con colores planos.
    - Entrada con `keydown` en `window` por `e.code`, registrada en `createHopperGame` y quitada en `destroy`. `preventDefault` en las flechas según el alcance.
    - Implementar `pause / resume / restart / end / destroy`, los callbacks (con `lives` 3 → 0), el límite de `dt` y el escalado HiDPI.
+   - Implementar `input(action, pressed)` con `ACTION_KEYS` y la misma función de salto que el teclado, y `setSkin(id)` con `SKINS.clasico` (los colores planos) como único skin real por ahora (`neon` copia de `clasico` hasta el paso 5).
    - Todavía no lo usa nadie. Resultado: `npm run build` y `npm run lint` pasan.
 3. **Motor: rozón, racha, llegada y volteo.**
    - Añadir `rozonOf`, la racha con su caducidad de 3 s, los puntos de rozón y de llegada, la animación del volteo con `mirrorLanes`, el cambio de viaje con `speedFor` y la franja de estado (TIEMPO, sentido y RACHA).
    - Todavía no lo usa nadie. Resultado: `npm run build` y `npm run lint` pasan.
 4. **Componente y ruta.**
-   - Crear `components/games/hopper-game.tsx` (`"use client"`) con `useCanvasGame(createHopperGame, { score: 0, lives: 3, level: 1 })`, `<GameShell>` y `<CanvasScreen>`, igual que `snake-game.tsx`.
+   - Crear `components/games/hopper-game.tsx` (`"use client"`) con `useCanvasGame(game.id, createHopperGame, { score: 0, lives: 3, level: 1 })`, `<GameShell>` (con `skin`/`onSkinChange` y `controls` con el `TouchPad` del `TOUCH` de la sección Alcance) y `<CanvasScreen>`, igual que `snake-game.tsx`.
    - Crear `app/games/vaiven/play/page.tsx` con `getGame("vaiven")`, igual que la ruta de SERPENTINA.
-   - Resultado: VAIVÉN es jugable de principio a fin y GUARDAR PUNTUACIÓN crea una fila en `scores`.
-5. **Paleta neón.**
-   - Usar `/frontend-design` para fijar `PALETTE`, `GLOW`, el rombo del saltador y su estiramiento, los vehículos con faro, los paquetes, las rayas del flujo, la explosión, el destello del rozón y la franja de estado, y aplicarlos en `entities.ts` y `engine.ts`.
+   - Resultado: VAIVÉN es jugable de principio a fin con teclado y con el mando táctil, y GUARDAR PUNTUACIÓN crea una fila en `scores`.
+5. **Paleta neón (skin `neon`).**
+   - Usar `/frontend-design` para fijar `SKINS.neon` (`palette` y `glow`), el rombo del saltador y su estiramiento, los vehículos con faro, los paquetes, las rayas del flujo, la explosión, el destello del rozón y la franja de estado, y aplicarlos en `entities.ts` y `engine.ts`.
    - El glow va en el saltador, los vehículos, el destello del rozón y el borde de las orillas. Los paquetes solo lo llevan si el rendimiento lo permite (ver Riesgos).
 6. **Verificación final.**
    - `npm run build` y `npm run lint`.
@@ -365,8 +372,10 @@ app/globals.css                                       (modificado: cover-vaiven)
 - [ ] Una puntuación que entra en el TOP 10 aparece en `/games/vaiven` y en la pestaña VAIVÉN de `/salon` sin recargar la caché, y coincide con `leaderboard('vaiven', 10)`.
 - [ ] JUGAR DE NUEVO cierra el modal y empieza una partida nueva: PUNTUACIÓN 0, VIDAS ♥ ♥ ♥, NIVEL 01, RACHA x1, "▲ IDA", carriles del viaje 1 y fase de espera con "PULSA ↑ PARA SALIR".
 - [ ] Al navegar de `/games/vaiven/play` a otra página, pulsar flechas o WASD no lanza errores, la página hace scroll con normalidad y no queda ningún loop activo.
-- [ ] Con emulación táctil en Playwright, `/games/vaiven/play` muestra "REQUIERE TECLADO" y no hay `<canvas>`.
-- [ ] El saltador, los vehículos, los paquetes, el destello del rozón y la franja de estado usan los colores de `PALETTE`, y el canvas se ve nítido con `devicePixelRatio` 2.
+- [ ] Con emulación táctil en Playwright (vertical 390×844 y horizontal 844×390), `/games/vaiven/play` muestra el `<canvas>` y un mando con las cuatro flechas y sin botones A/B. Cada flecha hace un salto por toque, igual que su tecla, y mantenerla pulsada no repite el salto.
+- [ ] El mando no responde en pausa, durante el volteo ni con el modal abierto, y el CRT y el mando caben en pantalla en las dos orientaciones. En escritorio no hay mando.
+- [ ] El selector de skin del `GameShell` ofrece CLÁSICO (por defecto) y NEÓN, y cambiar de skin en mitad de la partida cambia los colores sin reiniciarla.
+- [ ] El saltador, los vehículos, los paquetes, el destello del rozón y la franja de estado usan los colores del skin activo, y el canvas se ve nítido con `devicePixelRatio` 2.
 - [ ] No se pide ninguna imagen ni audio en la red al abrir `/games/vaiven/play`.
 - [ ] `select * from games where id = 'vaiven'` devuelve la fila con `cat = 'ARCADE'`, `color = 'green'`, `cover = 'cover-vaiven'` y `sort_order = 9`.
 - [ ] `/games` muestra VAIVÉN en la posición 9 y con el filtro ARCADE. La home sigue mostrando los mismos 6 juegos.
@@ -378,30 +387,31 @@ app/globals.css                                       (modificado: cover-vaiven)
 ## Decisiones
 
 - **Sí:** juego original diseñado en esta spec a partir de la idea de cezapx16: ida y vuelta, volteo del tablero, carriles más rápidos por viaje y rozón con multiplicador. **No:** copiar elementos reconocibles de un juego comercial del género (ranas, troncos, tortugas, nenúfares, casillas de llegada). Pedido en el tema.
-- **Sí:** juego nuevo `vaiven` en `sort_order` 9. **No:** sustituir el simulado `ranaria`, que es del mismo género pero tiene otro título, otra cover y otra propuesta en el TODO. Tomado de las recomendaciones (pendiente de confirmar).
-- **Sí:** título VAIVÉN, id `vaiven` (sin tilde, por el `check` del id), categoría ARCADE y color green. Pedido en el tema (pendiente de confirmar el color, porque green ya lo usan 3 juegos).
+- **Sí:** juego nuevo `vaiven` en `sort_order` 9. **No:** sustituir el simulado `ranaria`, que es del mismo género pero tiene otro título, otra cover y otra propuesta en el TODO. Tomado de las recomendaciones (confirmado por el usuario).
+- **Sí:** título VAIVÉN, id `vaiven` (sin tilde, por el `check` del id), categoría ARCADE y color green. Pedido en el tema; color confirmado por el usuario aunque green ya lo usan 3 juegos.
 - **Sí:** `short` "Cruza, voltea y vuelve más rápido." y un `long` que menciona la autopista, el río de datos, el volteo y la racha. Tomado de las recomendaciones.
-- **Sí:** ranking vacío, sin seed. **No:** 12 puntuaciones inventadas. Tomado de las recomendaciones (pendiente de confirmar).
-- **Sí:** el volteo es un espejo horizontal de 600 ms que invierte el sentido de todos los carriles, y se vuelve bajando. **No:** un giro de 180°, que dejaría la meta otra vez arriba. Pedido en el tema (interpretación pendiente de confirmar).
+- **Sí:** ranking vacío, sin seed. **No:** 12 puntuaciones inventadas. Tomado de las recomendaciones (confirmado por el usuario).
+- **Sí:** el volteo es un espejo horizontal de 600 ms que invierte el sentido de todos los carriles, y se vuelve bajando. **No:** un giro de 180°, que dejaría la meta otra vez arriba. Pedido en el tema (interpretación confirmada por el usuario).
 - **Sí:** cualquier celda de la orilla de enfrente completa el viaje. **No:** casillas de llegada que haya que rellenar, por originalidad y porque la ida y vuelta ya da el objetivo. Tomado de las recomendaciones.
-- **Sí:** rozón con un hueco de 1 a 16 px, solo con vehículos que se acercan, en la fila de origen o de destino, uno por salto. **No:** rozones con paquetes del río. Pedido en el tema (umbral pendiente de confirmar).
-- **Sí:** racha x1–x5 que caduca a los 3 s sin rozón y se pierde al morir. Tomado de las recomendaciones (pendiente de confirmar).
-- **Sí:** 45 s por viaje, con una vida perdida al agotarse. Evita esperar indefinidamente a que pase el vehículo perfecto. Tomado de las recomendaciones (pendiente de confirmar).
+- **Sí:** rozón con un hueco de 1 a 16 px, solo con vehículos que se acercan, en la fila de origen o de destino, uno por salto. **No:** rozones con paquetes del río. Pedido en el tema (umbral confirmado por el usuario).
+- **Sí:** racha x1–x5 que caduca a los 3 s sin rozón y se pierde al morir. Tomado de las recomendaciones (confirmado por el usuario).
+- **Sí:** 45 s por viaje, con una vida perdida al agotarse. Evita esperar indefinidamente a que pase el vehículo perfecto. Tomado de las recomendaciones (confirmado por el usuario).
 - **Sí:** puntos de avance solo por filas nuevas del viaje, que se conservan al morir. **No:** puntos por cualquier salto hacia delante, que permitiría farmear yendo y viniendo. Tomado de las recomendaciones.
 - **Sí:** velocidad `min(2.0, 1 + 0.1 × (viaje − 1))`. Pedido en el tema ("los carriles más rápidos en cada viaje"); los números son de las recomendaciones.
 - **Sí:** NIVEL = número de viaje y 3 vidas. El juego encaja en las tres métricas de `GameShell` sin ampliarlo. Tomado de las recomendaciones.
-- **Sí:** TIEMPO, sentido del viaje y RACHA en una franja de estado de 40 px dibujada en el canvas, porque son jugabilidad. **No:** ampliar `GameShell` con una métrica RACHA. Tomado de las recomendaciones (pendiente de confirmar).
+- **Sí:** TIEMPO, sentido del viaje y RACHA en una franja de estado de 40 px dibujada en el canvas, porque son jugabilidad. **No:** ampliar `GameShell` con una métrica RACHA. Tomado de las recomendaciones (confirmado por el usuario).
 - **Sí:** tablero de 20 × 14 celdas de 40 px más la franja, en 800×600. Encaja en el 4:3 sin franjas vacías. Tomado de las recomendaciones.
-- **Sí:** flechas y WASD, leídas por `e.code`, con `preventDefault` solo en las flechas. Un salto por pulsación, sin autorrepetición, con búfer de 1. Tomado de las recomendaciones (pendiente de confirmar).
+- **Sí:** flechas y WASD, leídas por `e.code`, con `preventDefault` solo en las flechas. Un salto por pulsación, sin autorrepetición, con búfer de 1. Tomado de las recomendaciones (confirmado por el usuario).
 - **Sí:** arranque en espera con "PULSA ↑ PARA SALIR" y el tiempo parado hasta el primer salto, como SERPENTINA. **No:** espera tras cada vida, porque la orilla ya es segura. Tomado de las recomendaciones.
 - **Sí:** sin victoria; los viajes se repiten sin fin. Tomado de las recomendaciones.
 - **Sí:** todo dibujado en canvas, sin assets ni sprites de terceros. Tomado de las recomendaciones.
 - **Sí:** sin sonido, igual que los otros cuatro juegos. Tomado de las recomendaciones.
-- **Sí:** aviso "REQUIERE TECLADO" en táctil con `CanvasScreen`. **No:** controles táctiles en esta spec. Tomado de las recomendaciones.
+- **Sí:** mando táctil de la SPEC 10 con las cuatro flechas, sin botones y sin autorrepetición, un salto por toque. **No:** el aviso "REQUIERE TECLADO", que la SPEC 10 eliminó. **No:** gestos de deslizar. Exigido por la SPEC 10.
+- **Sí:** skins `clasico` (por defecto) y `neon` en la spec, `retro` y `pastel` con `skin-designer` después. Exigido por el contrato de skins de `integracion.md`.
 - **Sí:** usar `useCanvasGame` y `CanvasScreen` de la SPEC 07 sin cambios. **No:** extraer ni duplicar nada, porque el hook ya existe.
 - **Sí:** el leaderboard se hereda de `GameShell` + `submitScore` + `getLeaderboard`. **No:** código de ranking propio del juego.
 - **Sí:** ruta estática `app/games/vaiven/play/page.tsx`. **No:** un `if` en la ruta genérica.
-- **Sí:** motor en `lib/games/hopper/` y componente `components/games/hopper-game.tsx`, con nombre de género en inglés como `asteroids`, `tetris`, `arkanoid` y `snake`. `lanes.ts` va aparte porque es la tabla que se equilibra y la que amplía la GJ-vaiven-02. Tomado de las recomendaciones (pendiente de confirmar).
+- **Sí:** motor en `lib/games/hopper/` y componente `components/games/hopper-game.tsx`, con nombre de género en inglés como `asteroids`, `tetris`, `arkanoid` y `snake`. `lanes.ts` va aparte porque es la tabla que se equilibra y la que amplía la GJ-vaiven-02 (SPEC 13 cuando se apruebe). Tomado de las recomendaciones (confirmado por el usuario).
 - **Sí:** paleta neón con glow y cover diseñadas con `/frontend-design`. Exigido por `CLAUDE.md`.
 - **Sí:** los callbacks solo se emiten cuando cambia el valor, para no provocar un render de React en cada frame.
 
@@ -421,12 +431,13 @@ app/globals.css                                       (modificado: cover-vaiven)
 | `create` inestable en el hook recrea el motor en cada render                              | `createHopperGame` es una función de módulo, nunca una lambda inline.                                                                                           |
 | `shadowBlur` en 24 vehículos y 15 paquetes baja los FPS                                   | Glow en el saltador, los vehículos, el destello y las orillas. Los paquetes solo lo llevan si se mantiene a 60 fps (se decide en el paso 5).                    |
 | El catálogo cacheado no muestra VAIVÉN tras la migración                                  | Reiniciar `next dev`; en producción entra con el build.                                                                                                         |
-| Dos juegos de cruce de carriles en el catálogo confunden (VAIVÉN real y RANARIA simulado) | Pregunta abierta 1 del README. La cover y los textos de VAIVÉN se diferencian de RANARIA.                                                                       |
+| Dos juegos de cruce de carriles en el catálogo confunden (VAIVÉN real y RANARIA simulado) | Decidido: juego nuevo y RANARIA sigue como simulado. La cover y los textos de VAIVÉN se diferencian de RANARIA.                                                                       |
 
 ## Lo que **no** entra en esta spec
 
 - Novedades por viaje (SPEC GJ-vaiven-02).
-- Controles táctiles.
+- Gestos, pantalla completa o PWA.
+- Skins `retro` y `pastel` (los hace `skin-designer`).
 - Sonido, música o mute.
 - Vidas extra, power-ups, casillas de llegada o rozones con paquetes.
 - RACHA o TIEMPO en el HUD de React (ampliar `GameShell`).

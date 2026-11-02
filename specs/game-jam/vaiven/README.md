@@ -3,7 +3,7 @@
 > **Tema:** cruce de carriles a saltos (género de cruce de carriles, juego original).
 > **Idea base:** propuesta por cezapx16 (2026-10-30).
 > **Fecha:** 2026-10-30
-> **Estado de las specs:** Draft
+> **Estado de las specs:** 01 movida a `specs/12-juego-hopper-vaiven.md` (preguntas 1–11 y 13 confirmadas por el usuario el 2026-11-02 con las opciones elegidas); 02 en Draft
 
 ## Juego elegido
 
@@ -40,7 +40,7 @@ Las dos ideas compiten por el mismo hueco del catálogo (ver pregunta abierta 1)
 | 1     | `01-juego-hopper-vaiven.md`       | Juego jugable completo: motor `lib/games/hopper/`, saltos, autopista y río de datos, rozón con racha x1–x5, volteo con carriles más rápidos, catálogo, cover y ranking vacío |
 | 2     | `02-vaiven-amenazas-por-viaje.md` | Novedades que se desbloquean viaje a viaje: paquetes que se comprimen (3), ráfagas de carril (4), ralentí (5) y mediana electrificada (6), con su aviso en el volteo         |
 
-La 02 depende de la 01 y no se empieza hasta que la 01 esté implementada. Al aprobarlas se mueven a `specs/10-juego-hopper-vaiven.md` y `specs/11-vaiven-amenazas-por-viaje.md` (o el número que toque) antes de `/spec-impl`.
+La 02 depende de la 01 y no se empieza hasta que la 01 esté implementada. Al aprobarlas se mueven a `specs/12-juego-hopper-vaiven.md` y `specs/13-vaiven-amenazas-por-viaje.md` (o el número que toque) antes de `/spec-impl`.
 
 ## Preguntas abiertas
 
