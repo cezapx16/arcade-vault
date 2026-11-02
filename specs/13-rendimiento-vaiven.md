@@ -1,6 +1,6 @@
 # SPEC 13 — Rendimiento del canvas de VAIVÉN
 
-> **Estado:** aprobado
+> **Estado:** implementado
 > **Depende de:** SPEC 12 (y SPEC 05, 07, 08, 09 por el límite de `devicePixelRatio`)
 > **Fecha:** 2026-11-02
 > **Objetivo:** Que VAIVÉN vaya a 60 FPS estables sin cambiar su aspecto en ningún skin, cacheando el tablero y el glow, y que los cinco juegos reales limiten el `devicePixelRatio` a 2.
