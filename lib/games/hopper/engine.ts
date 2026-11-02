@@ -1,4 +1,5 @@
 import type { GameAction } from "@/lib/games/input";
+import { pixelRatio } from "@/lib/games/dpr";
 import { DEFAULT_SKIN, type SkinId } from "@/lib/games/skins";
 import {
   CELL,
@@ -51,6 +52,7 @@ import {
   type RozonFx,
 } from "./entities";
 import { createLanes, type Lane } from "./lanes";
+import { createRenderCache, type RenderCache } from "./render-cache";
 export type HopperCallbacks = {
   onScore: (score: number) => void; // solo cuando cambia
   onLives: (lives: number) => void; // solo cuando cambia
@@ -104,7 +106,7 @@ export function createHopperGame(
   // Skin actual: solo lo lee el dibujo.
   let skin = SKINS[skinId];
   // HiDPI: buffer a resolución física, dibujo en coordenadas lógicas 800×600.
-  const dpr = window.devicePixelRatio || 1;
+  const dpr = pixelRatio();
   canvas.width = W * dpr;
   canvas.height = H * dpr;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -281,15 +283,22 @@ export function createHopperGame(
     else hop(d);
   }
   // ── Update ──
+  // Los caducados se compactan en el mismo array: sin arrays nuevos en cada frame.
   function updateParticles(dt: number) {
+    let n = 0;
     for (const p of particles) {
       p.x += (p.vx * dt) / 1000;
       p.y += (p.vy * dt) / 1000;
       p.life -= dt;
+      if (p.life > 0) particles[n++] = p;
     }
-    particles = particles.filter((p) => p.life > 0);
-    for (const f of rozonFx) f.life -= dt;
-    rozonFx = rozonFx.filter((f) => f.life > 0);
+    particles.length = n;
+    n = 0;
+    for (const f of rozonFx) {
+      f.life -= dt;
+      if (f.life > 0) rozonFx[n++] = f;
+    }
+    rozonFx.length = n;
   }
   // Arrastre del río y muertes con la celda lógica actual (también durante el salto).
   function checkPlayer(dt: number) {
@@ -353,10 +362,10 @@ export function createHopperGame(
       c.scale(Math.cos(Math.PI * t), 1);
       c.translate(-W / 2, 0);
     }
-    drawBoard(c, lanes, skin);
-    for (const lane of lanes) drawLane(c, lane, skin);
+    drawBoard(c, lanes, cache, skin);
+    for (const lane of lanes) drawLane(c, lane, cache);
     if (shown !== "dying" && shown !== "gameover") drawPlayer(c, player, skin);
-    drawParticles(c, particles, DYING_MS, skin);
+    drawParticles(c, particles, DYING_MS, cache);
     drawRozonFx(c, rozonFx, skin);
     c.restore();
     if (shown === "ready") drawPrompt(c, skin);
@@ -395,6 +404,8 @@ export function createHopperGame(
   };
   window.addEventListener("keydown", onKeyDown);
   init();
+  // Tablero y sprites del skin actual: se crean aquí y en setSkin, nunca dentro del loop.
+  let cache: RenderCache = createRenderCache(skin, lanes, dpr);
   emit();
   draw(ctx);
   start();
@@ -402,6 +413,7 @@ export function createHopperGame(
     setSkin(id) {
       if (destroyed) return;
       skin = SKINS[id];
+      cache = createRenderCache(skin, lanes, dpr);
       // En pausa el loop está parado: se repinta una vez.
       if (phase === "paused") draw(ctx);
     },

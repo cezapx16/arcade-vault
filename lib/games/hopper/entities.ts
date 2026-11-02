@@ -7,15 +7,10 @@ import {
   PLAYER_SIZE,
   PROMPT,
   PROMPT_POS,
-  ROAD_BOT,
   ROZON_FX_MS,
   ROZON_FX_RISE,
   ROZON_PX,
   STREAK_MS,
-  ROAD_TOP,
-  ROW_MEDIAN,
-  ROW_NORTH,
-  ROW_SOUTH,
   STATUS_Y,
   TIME_LOW_MS,
   TRIP_MS,
@@ -24,6 +19,7 @@ import {
   type Skin,
 } from "./constants";
 import { LOOP, LOOP_MAX, LOOP_MIN, speedFor, type Lane } from "./lanes";
+import { blit, vehicleKey, type RenderCache } from "./render-cache";
 export type HopDir = "up" | "down" | "left" | "right";
 // x: borde izquierdo de la celda en px (puede no ser múltiplo de 40 tras el arrastre del río).
 // hop: ms que quedan de la animación; off: desplazamiento visual al empezar el salto.
@@ -104,110 +100,36 @@ export function supportOf(lane: Lane, x: number) {
 }
 // ── Dibujo ── (px lógicos; el tablero ocupa y = 0–560)
 const rowY = (row: number) => row * CELL;
+// Tablero cacheado (carriles, líneas y zonas seguras con glow) y encima las rayas de flujo
+// del río, que avanzan con los paquetes de cada carril.
 export function drawBoard(
   ctx: CanvasRenderingContext2D,
   lanes: Lane[],
-  { palette, glow }: Skin,
+  cache: RenderCache,
+  { palette }: Skin,
 ) {
-  // Río de datos y sus rayas de flujo, que avanzan con los paquetes de cada carril.
+  ctx.drawImage(cache.board, 0, 0, W, STATUS_Y);
+  ctx.fillStyle = palette.dataFlow;
   for (const lane of lanes) {
+    if (lane.kind !== "data") continue;
     const y = rowY(lane.row);
-    if (lane.kind === "data") {
-      ctx.fillStyle = palette.data;
-      ctx.fillRect(0, y, W, CELL);
-      const phase = ((lane.xs[0] % CELL) + CELL) % CELL;
-      ctx.fillStyle = palette.dataFlow;
-      for (let x = phase - CELL; x < W; x += CELL)
-        ctx.fillRect(x, y + CELL / 2 - 1, CELL / 2, 2);
-    } else {
-      ctx.fillStyle = palette.road;
-      ctx.fillRect(0, y, W, CELL);
-    }
+    const phase = ((lane.xs[0] % CELL) + CELL) % CELL;
+    for (let x = phase - CELL; x < W; x += CELL)
+      ctx.fillRect(x, y + CELL / 2 - 1, CELL / 2, 2);
   }
-  // Líneas discontinuas entre los carriles de la autopista.
-  ctx.fillStyle = palette.laneLine;
-  for (let row = ROAD_TOP + 1; row <= ROAD_BOT; row++)
-    for (let x = 0; x < W; x += CELL) ctx.fillRect(x + 8, rowY(row) - 1, 24, 2);
-  // Zonas seguras con su borde hacia el peligro.
-  ctx.save();
-  ctx.shadowColor = palette.safeEdge;
-  ctx.shadowBlur = glow.edge;
-  for (const row of [ROW_NORTH, ROW_MEDIAN, ROW_SOUTH]) {
-    const y = rowY(row);
-    ctx.fillStyle = palette.safe;
-    ctx.fillRect(0, y, W, CELL);
-    ctx.fillStyle = palette.safeEdge;
-    if (row !== ROW_NORTH) ctx.fillRect(0, y, W, 2);
-    if (row !== ROW_SOUTH) ctx.fillRect(0, y + CELL - 2, W, 2);
-  }
-  ctx.restore();
 }
+// Paquetes y vehículos (con su haz, faros y glow) son sprites del skin actual: aquí solo se copian.
 export function drawLane(
   ctx: CanvasRenderingContext2D,
   lane: Lane,
-  { palette, glow }: Skin,
+  cache: RenderCache,
 ) {
   const y = rowY(lane.row);
-  const glass = palette.bodyAlpha < 1;
-  ctx.save();
-  if (lane.kind === "data") {
-    // Paquete de datos: 30 px de alto. En cristal, con un byte marcado cada 20 px.
-    ctx.strokeStyle = ctx.fillStyle = palette.packet;
-    ctx.shadowColor = palette.packet;
-    ctx.shadowBlur = glow.packet;
-    ctx.lineWidth = 2;
-    for (const x of lane.xs) {
-      ctx.globalAlpha = palette.bodyAlpha;
-      ctx.fillRect(x, y + 5, lane.len, 30);
-      if (!glass) continue;
-      ctx.globalAlpha = 0.45;
-      for (let bx = x + 20; bx < x + lane.len; bx += 20)
-        ctx.fillRect(bx - 1, y + 11, 2, 18);
-      ctx.globalAlpha = 1;
-      ctx.strokeRect(x + 1, y + 6, lane.len - 2, 28);
-    }
-  } else {
-    // Vehículo: 28 px de alto, con el faro en el frente según el sentido.
-    const color = palette[lane.vehicle ?? "coche"];
-    for (const x of lane.xs) {
-      const front = lane.dir === 1 ? x + lane.len : x;
-      // Haz del faro: dice hacia dónde va el vehículo antes de que llegue.
-      if (palette.beamAlpha > 0) {
-        const reach = front + lane.dir * 56;
-        const beam = ctx.createLinearGradient(front, 0, reach, 0);
-        beam.addColorStop(0, palette.headlight);
-        beam.addColorStop(1, "transparent");
-        ctx.globalAlpha = palette.beamAlpha;
-        ctx.fillStyle = beam;
-        ctx.beginPath();
-        ctx.moveTo(front, y + 12);
-        ctx.lineTo(reach, y + 4);
-        ctx.lineTo(reach, y + 36);
-        ctx.lineTo(front, y + 28);
-        ctx.closePath();
-        ctx.fill();
-      }
-      ctx.globalAlpha = palette.bodyAlpha;
-      ctx.fillStyle = color;
-      ctx.shadowColor = color;
-      ctx.shadowBlur = 0;
-      ctx.fillRect(x, y + 6, lane.len, 28);
-      ctx.globalAlpha = 1;
-      if (glass) {
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
-        ctx.shadowBlur = glow.vehicle;
-        ctx.strokeRect(x + 1, y + 7, lane.len - 2, 26);
-      }
-      ctx.fillStyle = palette.headlight;
-      ctx.shadowColor = palette.headlight;
-      ctx.shadowBlur = glow.vehicle / 2;
-      const fx = lane.dir === 1 ? x + lane.len - 6 : x + 2;
-      ctx.fillRect(fx, y + 10, 4, 6);
-      ctx.fillRect(fx, y + 24, 4, 6);
-    }
-  }
-  ctx.restore();
+  const s = lane.vehicle
+    ? cache.vehicles.get(vehicleKey(lane.vehicle, lane.len, lane.dir))
+    : cache.packets.get(lane.len);
+  if (!s) return;
+  for (const x of lane.xs) blit(ctx, cache, s, x, y);
 }
 // Rombo de luz centrado en su celda; durante el salto se estira en la dirección del movimiento.
 export function drawPlayer(
@@ -251,15 +173,12 @@ export function drawParticles(
   ctx: CanvasRenderingContext2D,
   particles: Particle[],
   max: number,
-  { palette, glow }: Skin,
+  cache: RenderCache,
 ) {
   ctx.save();
-  ctx.fillStyle = palette.death;
-  ctx.shadowColor = palette.death;
-  ctx.shadowBlur = glow.vehicle;
   for (const p of particles) {
     ctx.globalAlpha = Math.max(0, p.life / max);
-    ctx.fillRect(p.x - 3, p.y - 3, 6, 6);
+    blit(ctx, cache, cache.particle, p.x, p.y);
   }
   ctx.restore();
 }

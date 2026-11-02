@@ -1,4 +1,5 @@
 import type { GameAction } from "@/lib/games/input";
+import { pixelRatio } from "@/lib/games/dpr";
 import { DEFAULT_SKIN, type SkinId } from "@/lib/games/skins";
 import {
   BOARD_X,
@@ -79,7 +80,7 @@ export function createTetrisGame(
   if (!maybeCtx) throw new Error("Canvas 2D no disponible");
   const ctx: CanvasRenderingContext2D = maybeCtx;
   // HiDPI: buffer a resolución física, dibujo en coordenadas lógicas 800×600.
-  const dpr = window.devicePixelRatio || 1;
+  const dpr = pixelRatio();
   canvas.width = W * dpr;
   canvas.height = H * dpr;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
