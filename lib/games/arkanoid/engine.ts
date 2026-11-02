@@ -1,4 +1,5 @@
 import type { GameAction } from "@/lib/games/input";
+import { pixelRatio } from "@/lib/games/dpr";
 import { DEFAULT_SKIN, type SkinId } from "@/lib/games/skins";
 import {
   BALL_SIZE,
@@ -67,7 +68,7 @@ export function createArkanoidGame(
   // Skin actual: solo lo lee el dibujo.
   let skin = SKINS[skinId];
   // HiDPI: buffer a resolución física, dibujo en coordenadas lógicas 800×600.
-  const dpr = window.devicePixelRatio || 1;
+  const dpr = pixelRatio();
   canvas.width = W * dpr;
   canvas.height = H * dpr;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
