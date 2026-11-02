@@ -283,15 +283,22 @@ export function createHopperGame(
     else hop(d);
   }
   // ── Update ──
+  // Los caducados se compactan en el mismo array: sin arrays nuevos en cada frame.
   function updateParticles(dt: number) {
+    let n = 0;
     for (const p of particles) {
       p.x += (p.vx * dt) / 1000;
       p.y += (p.vy * dt) / 1000;
       p.life -= dt;
+      if (p.life > 0) particles[n++] = p;
     }
-    particles = particles.filter((p) => p.life > 0);
-    for (const f of rozonFx) f.life -= dt;
-    rozonFx = rozonFx.filter((f) => f.life > 0);
+    particles.length = n;
+    n = 0;
+    for (const f of rozonFx) {
+      f.life -= dt;
+      if (f.life > 0) rozonFx[n++] = f;
+    }
+    rozonFx.length = n;
   }
   // Arrastre del río y muertes con la celda lógica actual (también durante el salto).
   function checkPlayer(dt: number) {
