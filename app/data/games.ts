@@ -85,6 +85,15 @@ export const GAMES: Game[] = [
     cover: "cover-duelo",
     color: "cyan",
   },
+  {
+    id: "vaiven",
+    title: "VAIVÉN",
+    short: "Cruza, voltea y vuelve más rápido.",
+    long: "Salta carril a carril por una autopista de neón y un río de datos. Al llegar a la otra orilla el tablero se voltea y toca volver, cada viaje más rápido. Esquiva por los pelos y la racha multiplica tus puntos.",
+    cat: "ARCADE",
+    cover: "cover-vaiven",
+    color: "green",
+  },
 ];
 export const CATS: ("TODOS" | GameCategory)[] = [
   "TODOS",
