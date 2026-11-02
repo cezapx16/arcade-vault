@@ -23,6 +23,7 @@ Current state (specs 01–10): visual MVP (home, library, game detail, player, H
 - Skills (in `.claude/skills/`, also mirrored in `.agents/skills/`; `spec`/`spec-impl` come from https://github.com/Klerith/fernando-skills, tracked in `skills-lock.json`):
   - `/spec` — design a spec through questions and write it to `specs/`.
   - `/spec-impl` — implement an approved spec step by step. It creates the branch `spec-NN-slug` automatically (`specs/.spec-config.yml` → `AutoCreateBranch: true`). One commit per step (`spec NN paso X: …`), then ask before continuing.
+  - `/spec-impl-game` — project skill: same as `/spec-impl` (it reads and follows `.claude/skills/spec-impl/SKILL.md`, which the model cannot invoke directly) for a game spec; after the last step it launches `skin-designer` and then `mobile-porter`, one after the other (never in parallel), stopping if the first fails.
   - `/add-game` — project skill: writes the spec to port or add a playable game (from `references/started-games/` or a description). Its `integracion.md` is the contract every game must follow — read it before touching games.
   - `/frontend-design` — always use it to design UI (pages, components, and canvas palettes/glow).
 - Subagents (in `.claude/agents/`):
