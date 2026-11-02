@@ -126,22 +126,33 @@ Se rellena en el paso 1 (antes) y en el último paso (después).
 
 | Escenario         | Antes: FPS medios | Antes: p95 ms | Antes: frames > 33 ms | Después: FPS medios | Después: p95 ms | Después: frames > 33 ms |
 | ----------------- | ----------------- | ------------- | --------------------- | ------------------- | --------------- | ----------------------- |
-| A espera          | 59,9              | 16,8          | 0                     |                     |                 |                         |
-| B partida         | 59,9              | 16,8          | 0                     |                     |                 |                         |
-| A espera, CPU ×4  | 59,9              | 16,8          | 0                     |                     |                 |                         |
-| B partida, CPU ×4 | 59,6              | 16,8          | 1                     |                     |                 |                         |
+| A espera          | 59,9              | 16,8          | 0                     | 59,9                | 16,8            | 0                       |
+| B partida         | 59,9              | 16,8          | 0                     | 59,8                | 16,8            | 1                       |
+| A espera, CPU ×4  | 59,9              | 16,8          | 0                     | 59,9                | 16,8            | 0                       |
+| B partida, CPU ×4 | 59,6              | 16,8          | 1                     | 59,6                | 16,8            | 1                       |
 
 Coste del callback de `requestAnimationFrame` (`update` + `draw`), medido envolviendo `requestAnimationFrame` desde un `addInitScript`, escenario B, skin neón:
 
 | dpr (canvas)  | CPU | Antes: FPS | Antes: frames > 33 ms (de 400) | Antes: callback mediana / p95 ms | Después: FPS | Después: frames > 33 ms | Después: callback mediana / p95 ms |
 | ------------- | --- | ---------- | ------------------------------ | -------------------------------- | ------------ | ----------------------- | ---------------------------------- |
-| 1 (800×600)   | ×1  | 59,8       | 1                              | 0,4 / 0,7                        |              |                         |                                    |
-| 1 (800×600)   | ×4  | 59,9       | 0                              | 0,7 / 2,5                        |              |                         |                                    |
-| 2 (1600×1200) | ×4  | 59,9       | 0                              | 0,5 / 2,7                        |              |                         |                                    |
-| 3 (2400×1800) | ×4  | 59,9       | 0                              | 0,6 / 2,5                        |              |                         |                                    |
-| 3 (2400×1800) | ×6  | 59,1       | 6                              | 0,5 / 4,3                        |              |                         |                                    |
+| 1 (800×600)   | ×1  | 59,8       | 1                              | 0,4 / 0,7                        | 59,9         | 0                       | 0,3 / 1,7                          |
+| 1 (800×600)   | ×4  | 59,9       | 0                              | 0,7 / 2,5                        | 59,9         | 0                       | 0,4 / 2,5                          |
+| 2 (1600×1200) | ×4  | 59,9       | 0                              | 0,5 / 2,7                        | 59,9         | 0                       | 0,4 / 1,9                          |
+| 3 (2400×1800) | ×4  | 59,9       | 0                              | 0,6 / 2,5                        | 59,6         | 2                       | 0,3 / 2,0                          |
+| 3 (2400×1800) | ×6  | 59,1       | 6                              | 0,5 / 4,3                        | 59,8         | 1                       | 0,3 / 2,8                          |
 
-Notas de la medición base (paso 1, 2026-11-02):
+Con el límite del paso 2, en las filas de dpr 3 el canvas "después" mide 1600×1200.
+
+#### Notas de la medición final (paso 6, 2026-11-02)
+
+Mismo entorno y método que la base.
+
+- **Umbrales cumplidos:** A y B sin ralentizar a 59,8–59,9 FPS con p95 de 16,8 ms (≥ 58 y ≤ 20). Con CPU ×4, 59,6–59,9 FPS (≥ 50).
+- **Frames > 33 ms:** "B partida" pasa de 0 a 1, y dpr 3 con CPU ×4 de 0 a 2, mientras que dpr 3 con CPU ×6 baja de 6 a 1. Son frames sueltos de 33–67 ms (un vsync perdido). Al repetir B tres veces salen 2, 0 y 0 frames lentos sin ralentizar, y 1, 1 y 3 con CPU ×4: es ruido de la medición de una sola muestra, no una tendencia.
+- **Coste del frame en el hilo principal:** la mediana baja de 0,4–0,7 ms a 0,3–0,4 ms y el p95 en el peor caso (dpr 3, CPU ×6) de 4,3 a 2,8 ms. El ahorro de GPU (sin `shadowBlur` ni degradados en vehículos, paquetes, partículas y tablero) no se mide aquí.
+- **Capturas:** `despues-<skin>.png` y `despues-<skin>-partida.png`, mismas escenas que las de "antes". Coinciden lado a lado en colores, glow, haces, faros, bytes de los paquetes, bordes de las zonas seguras y partículas.
+
+#### Notas de la medición base (paso 1, 2026-11-02)
 
 - **Entorno:** Chrome headless (`channel: "chrome"`) lanzado desde el MCP de Playwright, con la GPU del equipo (ANGLE, AMD Radeon Vega 8, D3D11), contra `npm run dev`.
 - **Headless, no ventana visible:** la ventana visible del MCP baja a ~1 FPS cuando queda tapada por otra ventana, en cualquier página (también `/about`). Es el estrangulamiento de `requestAnimationFrame` de Chrome en ventanas ocultas, no el juego. Headless no lo sufre.
