@@ -4,11 +4,13 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { submitScore, type SubmitScoreResult } from "@/app/actions/scores";
 import type { Game } from "@/app/data/games";
+import { formatHud, type Hud, type HudRefs } from "@/components/games/hud";
 import { SKIN_IDS, SKIN_LABELS, type SkinId } from "@/lib/games/skins";
 import { useUser } from "@/lib/session";
 type GameShellProps = {
   game: Game;
-  hud: { score: number; lives: number; level: number };
+  hud: Hud; // valores que pinta React; en los juegos reales, el HUD inicial (constante)
+  hudRefs?: HudRefs; // si llegan, el motor escribe ahí PUNTUACIÓN, VIDAS y NIVEL sin pasar por React
   paused: boolean;
   over: boolean;
   onTogglePause: () => void;
@@ -25,6 +27,7 @@ type GameShellProps = {
 export function GameShell({
   game,
   hud,
+  hudRefs,
   paused,
   over,
   onTogglePause,
@@ -86,15 +89,21 @@ export function GameShell({
           </div>
           <div className="hud-stat">
             <div className="l">Puntuación</div>
-            <div className="v">{score.toLocaleString("es-ES")}</div>
+            <div className="v" ref={hudRefs?.score}>
+              {formatHud.score(score)}
+            </div>
           </div>
           <div className="hud-stat lives">
             <div className="l">Vidas</div>
-            <div className="v">{"♥ ".repeat(lives).trim() || "—"}</div>
+            <div className="v" ref={hudRefs?.lives}>
+              {formatHud.lives(lives)}
+            </div>
           </div>
           <div className="hud-stat level">
             <div className="l">Nivel</div>
-            <div className="v">{String(level).padStart(2, "0")}</div>
+            <div className="v" ref={hudRefs?.level}>
+              {formatHud.level(level)}
+            </div>
           </div>
         </div>
         <div className="hud-actions">
@@ -179,7 +188,7 @@ export function GameShell({
           >
             <h2 id="game-over-title">FIN DEL JUEGO</h2>
             <div className="final-label">PUNTUACIÓN FINAL</div>
-            <div className="final">{score.toLocaleString("es-ES")}</div>
+            <div className="final">{formatHud.score(score)}</div>
             {!saved ? (
               <>
                 <div className="input-row">
