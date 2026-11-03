@@ -22,9 +22,9 @@ const TOUCH: TouchLayout = {
 export function TetrisGame({ game }: { game: Game }) {
   const {
     canvasRef,
-    hud,
+    hudRefs,
     paused,
-    over,
+    finalScore,
     touch,
     togglePause,
     end,
@@ -32,13 +32,14 @@ export function TetrisGame({ game }: { game: Game }) {
     restart,
     skin,
     setSkin,
-  } = useCanvasGame(game.id, createTetrisGame, INITIAL_HUD);
+  } = useCanvasGame(game.id, createTetrisGame);
   return (
     <GameShell
       game={game}
-      hud={hud}
+      hud={INITIAL_HUD}
+      hudRefs={hudRefs}
       paused={paused}
-      over={over}
+      finalScore={finalScore}
       onTogglePause={togglePause}
       onEnd={end}
       onRestart={restart}
@@ -46,7 +47,11 @@ export function TetrisGame({ game }: { game: Game }) {
       onSkinChange={setSkin}
       controls={
         touch && (
-          <TouchPad layout={TOUCH} onInput={input} disabled={paused || over} />
+          <TouchPad
+            layout={TOUCH}
+            onInput={input}
+            disabled={paused || finalScore !== null}
+          />
         )
       }
     >
