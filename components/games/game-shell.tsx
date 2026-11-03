@@ -7,6 +7,12 @@ import type { Game } from "@/app/data/games";
 import { formatHud, type Hud, type HudRefs } from "@/components/games/hud";
 import { SKIN_IDS, SKIN_LABELS, type SkinId } from "@/lib/games/skins";
 import { useUser } from "@/lib/session";
+// Guardado de la puntuación: un solo estado en lugar de saved/saving/saveError.
+type SaveState =
+  | { status: "idle" }
+  | { status: "saving" }
+  | { status: "saved" }
+  | { status: "error"; error: string };
 type GameShellProps = {
   game: Game;
   hud: Hud; // valores que pinta React; en los juegos reales, el HUD inicial (constante)
@@ -54,20 +60,17 @@ export function GameShell({
   }, [hasControls]);
   // null = el jugador aún no ha escrito nada: se muestra el usuario o INVITADO.
   const [typedName, setTypedName] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
+  const [save, setSave] = useState<SaveState>({ status: "idle" });
+  const saving = save.status === "saving";
   const name = typedName ?? user?.name ?? "INVITADO";
   const { score, lives, level } = hud;
   const restart = () => {
-    setSaved(false);
-    setSaveError(null);
+    setSave({ status: "idle" });
     onRestart();
   };
-  const save = async () => {
+  const saveScore = async () => {
     if (saving || finalScore === null) return;
-    setSaving(true);
-    setSaveError(null);
+    setSave({ status: "saving" });
     let result: SubmitScoreResult;
     try {
       result = await submitScore({ gameId: game.id, name, score: finalScore });
@@ -75,9 +78,11 @@ export function GameShell({
       // Fallo de red al llamar a la Server Action.
       result = { ok: false, error: "NO SE PUDO GUARDAR" };
     }
-    setSaving(false);
-    if (result.ok) setSaved(true);
-    else setSaveError(result.error);
+    setSave(
+      result.ok
+        ? { status: "saved" }
+        : { status: "error", error: result.error },
+    );
   };
   return (
     <div className="av-player fade-in">
@@ -189,7 +194,7 @@ export function GameShell({
             <h2 id="game-over-title">FIN DEL JUEGO</h2>
             <div className="final-label">PUNTUACIÓN FINAL</div>
             <div className="final">{formatHud.score(finalScore)}</div>
-            {!saved ? (
+            {save.status !== "saved" ? (
               <>
                 <div className="input-row">
                   <input
@@ -203,16 +208,16 @@ export function GameShell({
                   />
                   <button
                     className="btn yellow"
-                    onClick={save}
+                    onClick={saveScore}
                     disabled={saving}
                     aria-busy={saving}
                   >
                     {saving ? "GUARDANDO…" : "GUARDAR PUNTUACIÓN"}
                   </button>
                 </div>
-                {saveError && (
+                {save.status === "error" && (
                   <div className="toast-error" role="alert">
-                    ▸ {saveError}
+                    ▸ {save.error}
                   </div>
                 )}
               </>
