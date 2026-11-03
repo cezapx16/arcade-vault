@@ -12,7 +12,7 @@ type GameShellProps = {
   hud: Hud; // valores que pinta React; en los juegos reales, el HUD inicial (constante)
   hudRefs?: HudRefs; // si llegan, el motor escribe ahí PUNTUACIÓN, VIDAS y NIVEL sin pasar por React
   paused: boolean;
-  over: boolean;
+  finalScore: number | null; // null = partida en curso; si no, abre el modal con esta puntuación
   onTogglePause: () => void;
   onEnd: () => void; // botón FIN
   onRestart: () => void; // botón JUGAR DE NUEVO del modal
@@ -29,7 +29,7 @@ export function GameShell({
   hud,
   hudRefs,
   paused,
-  over,
+  finalScore,
   onTogglePause,
   onEnd,
   onRestart,
@@ -65,12 +65,12 @@ export function GameShell({
     onRestart();
   };
   const save = async () => {
-    if (saving) return;
+    if (saving || finalScore === null) return;
     setSaving(true);
     setSaveError(null);
     let result: SubmitScoreResult;
     try {
-      result = await submitScore({ gameId: game.id, name, score });
+      result = await submitScore({ gameId: game.id, name, score: finalScore });
     } catch {
       // Fallo de red al llamar a la Server Action.
       result = { ok: false, error: "NO SE PUDO GUARDAR" };
@@ -110,7 +110,7 @@ export function GameShell({
           <button
             className="btn yellow"
             onClick={onTogglePause}
-            disabled={over}
+            disabled={finalScore !== null}
           >
             {paused ? "REANUDAR" : "PAUSA"}
           </button>
@@ -178,7 +178,7 @@ export function GameShell({
         </div>
       </div>
       {controls}
-      {over && (
+      {finalScore !== null && (
         <div className="modal-bd">
           <div
             className="modal"
@@ -188,7 +188,7 @@ export function GameShell({
           >
             <h2 id="game-over-title">FIN DEL JUEGO</h2>
             <div className="final-label">PUNTUACIÓN FINAL</div>
-            <div className="final">{formatHud.score(score)}</div>
+            <div className="final">{formatHud.score(finalScore)}</div>
             {!saved ? (
               <>
                 <div className="input-row">

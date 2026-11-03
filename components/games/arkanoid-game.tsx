@@ -15,9 +15,9 @@ const TOUCH: TouchLayout = { dpad: ["left", "right"], buttons: [] };
 export function ArkanoidGame({ game }: { game: Game }) {
   const {
     canvasRef,
-    hud,
+    hudRefs,
     paused,
-    over,
+    finalScore,
     touch,
     togglePause,
     end,
@@ -25,13 +25,14 @@ export function ArkanoidGame({ game }: { game: Game }) {
     restart,
     skin,
     setSkin,
-  } = useCanvasGame(game.id, createArkanoidGame, INITIAL_HUD);
+  } = useCanvasGame(game.id, createArkanoidGame);
   return (
     <GameShell
       game={game}
-      hud={hud}
+      hud={INITIAL_HUD}
+      hudRefs={hudRefs}
       paused={paused}
-      over={over}
+      finalScore={finalScore}
       onTogglePause={togglePause}
       onEnd={end}
       onRestart={restart}
@@ -39,7 +40,11 @@ export function ArkanoidGame({ game }: { game: Game }) {
       onSkinChange={setSkin}
       controls={
         touch && (
-          <TouchPad layout={TOUCH} onInput={input} disabled={paused || over} />
+          <TouchPad
+            layout={TOUCH}
+            onInput={input}
+            disabled={paused || finalScore !== null}
+          />
         )
       }
     >
