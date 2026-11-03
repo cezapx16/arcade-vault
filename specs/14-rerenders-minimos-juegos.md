@@ -1,6 +1,6 @@
 # SPEC 14 — Re-renders mínimos en los juegos de canvas
 
-> **Estado:** Draft
+> **Estado:** implementado
 > **Depende de:** SPEC 07, SPEC 10, SPEC 12
 > **Fecha:** 2026-11-02
 > **Objetivo:** Que durante una partida de cualquier juego real React no haga ningún render, sacando el HUD del estado con refs y dejando el mínimo de `useState` en `useCanvasGame` y `GameShell`.
