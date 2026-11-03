@@ -1,5 +1,11 @@
 "use client";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { formatHud, type HudKey, type HudRefs } from "@/components/games/hud";
 import type { GameAction } from "@/lib/games/input";
 import type { SkinId } from "@/lib/games/skins";
@@ -116,21 +122,29 @@ export function useCanvasGame(
       document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [over]);
-  const restart = () => {
+  // Estables durante toda la vida del componente: leen el motor de engineRef y usan setters estables.
+  // Así el TouchPad (memo) no se renderiza al pausar ni repite setEmit.
+  const togglePause = useCallback(() => setPaused((p) => !p), []);
+  const end = useCallback(() => engineRef.current?.end(), []);
+  const input = useCallback(
+    (action: GameAction, pressed: boolean) =>
+      engineRef.current?.input(action, pressed),
+    [],
+  );
+  const restart = useCallback(() => {
     engineRef.current?.restart();
     setFinalScore(null);
     setPaused(false);
-  };
+  }, []);
   return {
     canvasRef,
     hudRefs,
     paused,
     finalScore,
     touch,
-    togglePause: () => setPaused((p) => !p),
-    end: () => engineRef.current?.end(),
-    input: (action: GameAction, pressed: boolean) =>
-      engineRef.current?.input(action, pressed),
+    togglePause,
+    end,
+    input,
     restart,
     skin,
     setSkin,
