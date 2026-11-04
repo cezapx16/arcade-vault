@@ -82,3 +82,38 @@ Hay que hacerla una vez por proyecto de Supabase; sin ella, el enlace del correo
 ### Límites del SMTP de Supabase
 
 Los correos de Auth salen del SMTP integrado de Supabase, pensado solo para pruebas: tiene un límite muy bajo de correos por hora y puede restringir los destinatarios. Prueba con pocas cuentas; si se supera, la tarjeta muestra "DEMASIADOS INTENTOS, ESPERA UN POCO". Un SMTP propio (por ejemplo, Resend) queda para otra spec.
+
+## Seguridad
+
+Medidas básicas de la SPEC 16. El estado de cada punto está en `references/security/security-checklist.md`.
+
+### Cabeceras
+
+`next.config.ts` añade estas cabeceras a todas las rutas (`headers()` con `source: "/(.*)"`) y desactiva `X-Powered-By` con `poweredByHeader: false`:
+
+| Cabecera                 | Valor                                      |
+| ------------------------ | ------------------------------------------ |
+| `X-Content-Type-Options` | `nosniff`                                  |
+| `X-Frame-Options`        | `DENY`                                     |
+| `Referrer-Policy`        | `strict-origin-when-cross-origin`          |
+| `Permissions-Policy`     | `camera=(), microphone=(), geolocation=()` |
+
+No hay Content Security Policy (irá en su propia spec) ni `Strict-Transport-Security`, que lo pone el hosting con HTTPS.
+
+### Base de datos
+
+- RLS activado en `games`, `scores` y `profiles`. El event trigger `ensure_rls` de Supabase lo activa en las tablas nuevas de `public`.
+- `anon` y `authenticated` no pueden ejecutar `public.rls_auto_enable()`, la función de ese event trigger (migración `revoke_rls_auto_enable`). El trigger sigue funcionando porque no necesita `EXECUTE`.
+- `scores` sigue aceptando inserciones públicas (con los `check` de formato). Se cerrará en la spec que ligue las puntuaciones a la cuenta.
+
+### Configuración del dashboard de Auth (manual)
+
+1. **Authentication → Providers → Email:** "Minimum password length" en `8` y "Password requirements" sin requisitos, igual que `MIN_PASSWORD` en `signUp`.
+2. **Authentication → Rate Limits:** límite de sign-ups y sign-ins por IP en el valor por defecto (30 cada 5 minutos).
+3. **Authentication → Providers → Email → "Leaked password protection":** solo existe en el plan Pro o superior. En el plan Free no se puede activar y el aviso `auth_leaked_password_protection` del panel queda aceptado.
+
+Estado a 2026-11-04: la leaked password protection está desactivada (`get_advisors` sigue mostrando el aviso) y el plan del proyecto está sin confirmar.
+
+### Límite por IP
+
+`signUp` y `signIn` son Server Actions, así que Supabase ve la IP del servidor de Next y no la del jugador. En la práctica el límite de 30 cada 5 minutos es global para toda la app. Al superarlo, la tarjeta muestra "DEMASIADOS INTENTOS, ESPERA UN POCO". La protección anti-bot real (captcha) irá en su propia spec.
