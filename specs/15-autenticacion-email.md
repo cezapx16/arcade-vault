@@ -1,6 +1,6 @@
 # SPEC 15 — Registro, inicio de sesión y autenticación con email
 
-> **Estado:** aprobado
+> **Estado:** implementado
 > **Depende de:** SPEC 01, SPEC 04, SPEC 06
 > **Fecha:** 2026-11-03
 > **Objetivo:** Sustituir la sesión simulada de `/login` por cuentas reales de Supabase Auth (email + contraseña con confirmación por correo) con un alias arcade único guardado en `profiles`.

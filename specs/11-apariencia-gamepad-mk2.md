@@ -1,6 +1,6 @@
 # SPEC 11 — Apariencia del mando táctil como el Gamepad MK-II
 
-> **Estado:** Draft
+> **Estado:** implementado
 > **Depende de:** SPEC 10
 > **Fecha:** 2026-10-31
 > **Objetivo:** Que el mando táctil de los juegos reales tenga el aspecto del Gamepad MK-II de `references/gamepad-assets/` sin cambiar cómo funciona.
