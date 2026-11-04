@@ -13,8 +13,10 @@ export const metadata: Metadata = {
 async function LoginGate() {
   let signedIn = false;
   if (getSupabaseEnv()) {
+    // Fuera del try: en el prerender cookies() se queda pendiente y Next lo tiene
+    // que ver (si se captura, el build lo registra como error).
+    const supabase = await createClient();
     try {
-      const supabase = await createClient();
       const { data } = await supabase.auth.getClaims();
       signedIn = Boolean(data?.claims);
     } catch (error) {

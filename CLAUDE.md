@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Arcade Vault is an online platform for playing arcade games and competing for the highest score. The README, specs, UI copy and code comments are in Spanish — answer the user in Spanish.
 
-Current state (specs 01–14): visual MVP (home, library, game detail, player, Hall of Fame, login, about), contact form via Resend, Supabase integration, real leaderboards backed by Supabase, and five real canvas games playable with keyboard or on touch devices (virtual pad), each with 4 skins, canvas performance limits (spec 13) and zero React commits during play (spec 14). The rest of the catalog still uses the simulated player. Spec 11 (touch pad styled as the Gamepad MK-II, assets in `references/gamepad-assets/`) is not reflected in the code yet (`touch-pad.tsx` keeps the spec 10 look).
+Current state (specs 01–15): visual MVP (home, library, game detail, player, Hall of Fame, login, about), contact form via Resend, Supabase integration, real leaderboards backed by Supabase, real accounts with Supabase Auth (email + password, email confirmation, unique arcade alias; spec 15), and five real canvas games playable with keyboard or on touch devices (virtual pad), each with 4 skins, canvas performance limits (spec 13) and zero React commits during play (spec 14). The rest of the catalog still uses the simulated player. Spec 11 (touch pad styled as the Gamepad MK-II, assets in `references/gamepad-assets/`) is not reflected in the code yet (`touch-pad.tsx` keeps the spec 10 look).
 
 | Game id         | Title         | Engine                 | Component                             |
 | --------------- | ------------- | ---------------------- | ------------------------------------- |
@@ -63,19 +63,22 @@ A `PostToolUse` hook (`.claude/hooks/format-and-lint.mjs`) runs after every Writ
 - Real games have a static route `app/games/<id>/play/page.tsx` (`rocas`, `caida`, `bloque-buster`, `serpentina`, `vaiven`) that takes precedence over `[id]/play` — never modify the dynamic one for a real game.
 - `app/api/contact/route.ts` — POST, sends the contact email with Resend. `app/api/health/route.ts` — GET, checks Supabase DB + Auth (`500 SERVICIO NO CONFIGURADO` without env vars).
 - `app/actions/scores.ts` — `submitScore` Server Action: validates (id `^[a-z0-9-]{1,32}$`, name 1–10 chars uppercased, integer score 0–9 999 999), inserts as `anon`, then `updateTag("scores-<id>")` and `updateTag("game-stats")`.
+- `app/actions/auth.ts` — `signUp`, `signIn`, `signOut` Server Actions (SSR client) used by `AuthCard` through `useActionState`; return `AuthState` (`idle` / `error` + Spanish message / `ok` + alias / `check-email` + email). Server-side validation; every Supabase error is mapped to a Spanish message (never show Supabase's English text). `signUp` checks `alias_available` first and passes the alias in `options.data.name` with `emailRedirectTo` = `<request origin>/auth/confirm`.
+- `app/auth/confirm/route.ts` — GET, redeems the email link (`token_hash` + `type` → `verifyOtp`), redirects to `/` or `/login?error=enlace`. Needs the manual dashboard setup documented in `README.md` → Autenticación (email template with `{{ .RedirectTo }}?token_hash=…&type=email`, Redirect URLs).
+- `/login` checks `getClaims()` inside its `<Suspense>` (cookies + Cache Components) and redirects to `/` when signed in.
 
 ### Data
 
 - `app/data/games.ts` — `Game` types and the `GAMES` catalog, used as fallback when Supabase is unavailable and as the seed source. `app/data/home.ts` — home content.
 - `lib/data/games.ts` (`getGames`, `getGame`; tags `games`, `game-stats`) and `lib/data/scores.ts` (`getLeaderboard`; tag `scores-<id>`, `null` = ranking unavailable) — cached reads. `lib/data/format.ts` — formatters.
 - The app degrades gracefully without Supabase: catalog falls back to `GAMES` with stats at 0, leaderboards show "NO DISPONIBLE".
-- `lib/session.ts` — the player's "session" is local only (`localStorage` key `av_user`, exposed with `useSyncExternalStore`); Supabase Auth is not used yet.
+- `lib/session.ts` — the player's session comes from Supabase Auth (browser client `getSession()` + alias from `profiles`, `JUGADOR` if there is no profile; `null` without Supabase env), exposed as `useUser(): { name } | null` with `useSyncExternalStore`. Call `refreshUser()` after the `signIn`/`signOut` actions: the server sets the cookies and the client's `onAuthStateChange` doesn't notice. It removes the old local-session key `av_user` on load. Routes are not protected and scores are not tied to the account (guests can still play and save).
 
 ### Supabase
 
 - Project `kzkpuodqsexbszdlehap`, reached through the Supabase MCP (`.mcp.json`).
 - Clients: `lib/supabase/client.ts` (browser), `lib/supabase/server.ts` (SSR, `await createClient()`), `lib/supabase/public.ts` (no cookies, `cache: "no-store"` fetch — use it inside `"use cache"` and in anon Server Actions; returns `null` if env is missing). Env read in `lib/supabase/env.ts`.
-- Schema: tables `games` and `scores` with RLS, view `game_stats` (best/plays), functions `leaderboard()` and `player_best()`, plus `health_check`.
+- Schema: tables `games` and `scores` with RLS, view `game_stats` (best/plays), functions `leaderboard()` and `player_best()`, plus `health_check`. Auth: table `profiles` (`id` → `auth.users`, unique `name` `^[A-Z0-9_]{1,10}$`, public read, no client writes) filled by trigger `on_auth_user_created` → `handle_new_user()` (security definer, execute revoked) from `raw_user_meta_data->>'name'`, and `alias_available(p_name)` (security invoker, callable by anon).
 - Migrations: SQL files `supabase/migrations/AAAAMMDDHHMMSS_name.sql`, committed, applied with MCP `apply_migration` (same name), checked with `list_migrations`, then review `get_advisors`. After any schema change regenerate `lib/supabase/database.types.ts` with `generate_typescript_types`.
 - Env vars (`.env.example` → `.env.local`): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `RESEND_API_KEY`, `CONTACT_TO_EMAIL`, `CONTACT_FROM_EMAIL`. Never put a `service_role`/`sb_secret_` key in `NEXT_PUBLIC_*`.
 
