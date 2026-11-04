@@ -344,12 +344,19 @@ a {
 .av-mobile-panel.open {
   transform: translateX(0);
 }
-.av-mobile-panel a {
+.av-mobile-panel a,
+.av-mobile-panel .panel-link {
   padding: 14px 12px;
   font-family: var(--pixel);
   font-size: 11px;
   color: var(--ink-dim);
   border-bottom: 1px dashed var(--line-2);
+}
+.av-mobile-panel .panel-link {
+  background: transparent;
+  border-width: 0 0 1px;
+  text-align: left;
+  cursor: pointer;
 }
 .av-mobile-panel a.active {
   color: var(--cyan);

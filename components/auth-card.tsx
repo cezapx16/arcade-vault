@@ -2,7 +2,7 @@
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useState } from "react";
 import { signIn, signUp, type AuthState } from "@/app/actions/auth";
-import { signIn as localSignIn } from "@/lib/session";
+import { refreshUser } from "@/lib/session";
 export type Mode = "login" | "register";
 const IDLE: AuthState = { status: "idle" };
 // Cada pestaña es un formulario con su propio useActionState: al cambiar de pestaña
@@ -68,10 +68,10 @@ function AuthError({ message }: { message: string }) {
 function LoginForm({ initialError }: { initialError?: string }) {
   const router = useRouter();
   const [state, action, pending] = useActionState(signIn, IDLE);
+  // Las cookies las puso el servidor: se relee la sesión antes de salir de /login.
   useEffect(() => {
     if (state.status !== "ok") return;
-    localSignIn({ name: state.name });
-    router.push("/");
+    void refreshUser().then(() => router.replace("/"));
   }, [state, router]);
   const error =
     state.status === "error"
