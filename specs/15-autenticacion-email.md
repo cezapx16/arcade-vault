@@ -83,7 +83,7 @@ supabase.auth.signUp({
 export type AuthState =
   | { status: "idle" }
   | { status: "error"; message: string }
-  | { status: "ok" } // signIn correcto
+  | { status: "ok"; name: string } // signIn correcto, con el alias de profiles (JUGADOR si no hay perfil)
   | { status: "check-email"; email: string }; // signUp correcto
 ```
 
@@ -99,6 +99,7 @@ Mensajes (nunca se muestra el texto en inglés de Supabase):
 | --------------------------------------------------------------------------- | -------------------------------------- |
 | Alias inválido                                                              | `ALIAS: 1–10 LETRAS, NÚMEROS O _`      |
 | Alias ocupado (o violación de `unique` en el trigger)                       | `ESE ALIAS YA ESTÁ EN USO`             |
+| Email vacío o sin formato de email                                          | `INTRODUCE UN EMAIL VÁLIDO`            |
 | Contraseña corta / `weak_password`                                          | `LA CONTRASEÑA NECESITA 8 CARACTERES`  |
 | Las contraseñas no coinciden                                                | `LAS CONTRASEÑAS NO COINCIDEN`         |
 | `user_already_exists`, o `signUp` devuelve `user.identities` vacío          | `ESE EMAIL YA TIENE CUENTA`            |
