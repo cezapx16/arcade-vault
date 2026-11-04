@@ -1,5 +1,12 @@
 "use client";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
+import { formatHud, type HudKey, type HudRefs } from "@/components/games/hud";
 import type { GameAction } from "@/lib/games/input";
 import type { SkinId } from "@/lib/games/skins";
 import { useSkin } from "@/lib/skin";
@@ -18,7 +25,6 @@ export type HudCallbacks = {
   onLevel: (level: number) => void;
   onGameOver: (score: number) => void;
 };
-type Hud = { score: number; lives: number; level: number };
 const isTypingTarget = (t: EventTarget | null) =>
   t instanceof HTMLElement &&
   (t.tagName === "INPUT" || t.tagName === "TEXTAREA");
@@ -33,6 +39,7 @@ const getTouch = () => window.matchMedia(TOUCH_QUERY).matches;
 // En el servidor se asume sin táctil; el mando aparece tras la hidratación, sin mismatch.
 const getServerTouch = () => false;
 // Monta un motor de canvas en el CRT y expone su estado para el shell.
+// El HUD no es estado: el motor escribe PUNTUACIÓN, VIDAS y NIVEL en `hudRefs` y React no renderiza.
 // `create` debe ser estable (una función de módulo), o el motor se recrea en cada render.
 // El skin se guarda por juego (`gameId`) y se aplica en caliente con engine.setSkin.
 export function useCanvasGame(
@@ -42,7 +49,6 @@ export function useCanvasGame(
     callbacks: HudCallbacks,
     skin: SkinId,
   ) => CanvasEngine,
-  initialHud: Hud,
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<CanvasEngine | null>(null);
@@ -50,21 +56,34 @@ export function useCanvasGame(
   // El motor nace con el skin actual, pero el skin no es dependencia de su creación:
   // cambiarlo no debe recrear el motor ni reiniciar la partida.
   const skinRef = useRef(skin);
-  const [hud, setHud] = useState(initialHud);
+  const scoreRef = useRef<HTMLDivElement>(null);
+  const livesRef = useRef<HTMLDivElement>(null);
+  const levelRef = useRef<HTMLDivElement>(null);
+  const hudRefs: HudRefs = {
+    score: scoreRef,
+    lives: livesRef,
+    level: levelRef,
+  };
   const [paused, setPaused] = useState(false);
-  const [over, setOver] = useState(false);
+  // null = partida en curso; al terminar, la puntuación final (abre el modal).
+  const [finalScore, setFinalScore] = useState<number | null>(null);
   const touch = useSyncExternalStore(subscribeTouch, getTouch, getServerTouch);
   // Un motor por montaje: con el doble montaje de StrictMode se destruye el primero.
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    const refs: HudRefs = { score: scoreRef, lives: livesRef, level: levelRef };
+    const write = (k: HudKey, n: number) => {
+      const node = refs[k].current;
+      if (node) node.textContent = formatHud[k](n);
+    };
     const engine = create(
       canvas,
       {
-        onScore: (score) => setHud((h) => ({ ...h, score })),
-        onLives: (lives) => setHud((h) => ({ ...h, lives })),
-        onLevel: (level) => setHud((h) => ({ ...h, level })),
-        onGameOver: () => setOver(true),
+        onScore: (score) => write("score", score),
+        onLives: (lives) => write("lives", lives),
+        onLevel: (level) => write("level", level),
+        onGameOver: (score) => setFinalScore(score),
       },
       skinRef.current,
     );
@@ -85,6 +104,7 @@ export function useCanvasGame(
     if (paused) engine.pause();
     else engine.resume();
   }, [paused]);
+  const over = finalScore !== null;
   useEffect(() => {
     if (over) return;
     const onKeyDown = (e: KeyboardEvent) => {
@@ -102,21 +122,29 @@ export function useCanvasGame(
       document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [over]);
-  const restart = () => {
+  // Estables durante toda la vida del componente: leen el motor de engineRef y usan setters estables.
+  // Así el TouchPad (memo) no se renderiza al pausar ni repite setEmit.
+  const togglePause = useCallback(() => setPaused((p) => !p), []);
+  const end = useCallback(() => engineRef.current?.end(), []);
+  const input = useCallback(
+    (action: GameAction, pressed: boolean) =>
+      engineRef.current?.input(action, pressed),
+    [],
+  );
+  const restart = useCallback(() => {
     engineRef.current?.restart();
-    setOver(false);
+    setFinalScore(null);
     setPaused(false);
-  };
+  }, []);
   return {
     canvasRef,
-    hud,
+    hudRefs,
     paused,
-    over,
+    finalScore,
     touch,
-    togglePause: () => setPaused((p) => !p),
-    end: () => engineRef.current?.end(),
-    input: (action: GameAction, pressed: boolean) =>
-      engineRef.current?.input(action, pressed),
+    togglePause,
+    end,
+    input,
     restart,
     skin,
     setSkin,

@@ -1,18 +1,14 @@
 "use client";
-
 import { useEffect, useState } from "react";
 import type { Game } from "@/app/data/games";
 import { GameShell } from "@/components/games/game-shell";
-
 // Partida simulada (placeholder hasta que existan juegos reales), copiada de la referencia.
 const INITIAL_RUN = { score: 0, level: 1 };
-
 export function GamePlayer({ game }: { game: Game }) {
   const [run, setRun] = useState(INITIAL_RUN);
   const [lives, setLives] = useState(3);
   const [paused, setPaused] = useState(false);
   const [over, setOver] = useState(false);
-
   useEffect(() => {
     if (over || paused) return;
     const t = setInterval(() => {
@@ -27,20 +23,18 @@ export function GamePlayer({ game }: { game: Game }) {
     }, 220);
     return () => clearInterval(t);
   }, [over, paused]);
-
   const restart = () => {
     setRun(INITIAL_RUN);
     setLives(3);
     setPaused(false);
     setOver(false);
   };
-
   return (
     <GameShell
       game={game}
       hud={{ score: run.score, lives, level: run.level }}
       paused={paused}
-      over={over}
+      finalScore={over ? run.score : null}
       onTogglePause={() => setPaused((p) => !p)}
       onEnd={() => setOver(true)}
       onRestart={restart}

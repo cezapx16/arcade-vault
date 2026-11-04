@@ -1,6 +1,6 @@
 # SPEC 08 — Juego Arkanoid real en BLOQUE BUSTER
 
-> **Estado:** Aprobado
+> **Estado:** Implementado
 > **Depende de:** SPEC 05, SPEC 06, SPEC 07
 > **Fecha:** 2026-10-28
 > **Objetivo:** Portar el Arkanoid de `references/started-games/04-arkanoid/` a TypeScript y hacerlo jugable en `/games/bloque-buster/play`, integrado con el HUD, la pausa, el modal de fin y el ranking de la plataforma.

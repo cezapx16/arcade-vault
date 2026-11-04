@@ -4,13 +4,21 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { submitScore, type SubmitScoreResult } from "@/app/actions/scores";
 import type { Game } from "@/app/data/games";
+import { formatHud, type Hud, type HudRefs } from "@/components/games/hud";
 import { SKIN_IDS, SKIN_LABELS, type SkinId } from "@/lib/games/skins";
 import { useUser } from "@/lib/session";
+// Guardado de la puntuación: un solo estado en lugar de saved/saving/saveError.
+type SaveState =
+  | { status: "idle" }
+  | { status: "saving" }
+  | { status: "saved" }
+  | { status: "error"; error: string };
 type GameShellProps = {
   game: Game;
-  hud: { score: number; lives: number; level: number };
+  hud: Hud; // valores que pinta React; en los juegos reales, el HUD inicial (constante)
+  hudRefs?: HudRefs; // si llegan, el motor escribe ahí PUNTUACIÓN, VIDAS y NIVEL sin pasar por React
   paused: boolean;
-  over: boolean;
+  finalScore: number | null; // null = partida en curso; si no, abre el modal con esta puntuación
   onTogglePause: () => void;
   onEnd: () => void; // botón FIN
   onRestart: () => void; // botón JUGAR DE NUEVO del modal
@@ -25,8 +33,9 @@ type GameShellProps = {
 export function GameShell({
   game,
   hud,
+  hudRefs,
   paused,
-  over,
+  finalScore,
   onTogglePause,
   onEnd,
   onRestart,
@@ -51,30 +60,29 @@ export function GameShell({
   }, [hasControls]);
   // null = el jugador aún no ha escrito nada: se muestra el usuario o INVITADO.
   const [typedName, setTypedName] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
+  const [save, setSave] = useState<SaveState>({ status: "idle" });
+  const saving = save.status === "saving";
   const name = typedName ?? user?.name ?? "INVITADO";
   const { score, lives, level } = hud;
   const restart = () => {
-    setSaved(false);
-    setSaveError(null);
+    setSave({ status: "idle" });
     onRestart();
   };
-  const save = async () => {
-    if (saving) return;
-    setSaving(true);
-    setSaveError(null);
+  const saveScore = async () => {
+    if (saving || finalScore === null) return;
+    setSave({ status: "saving" });
     let result: SubmitScoreResult;
     try {
-      result = await submitScore({ gameId: game.id, name, score });
+      result = await submitScore({ gameId: game.id, name, score: finalScore });
     } catch {
       // Fallo de red al llamar a la Server Action.
       result = { ok: false, error: "NO SE PUDO GUARDAR" };
     }
-    setSaving(false);
-    if (result.ok) setSaved(true);
-    else setSaveError(result.error);
+    setSave(
+      result.ok
+        ? { status: "saved" }
+        : { status: "error", error: result.error },
+    );
   };
   return (
     <div className="av-player fade-in">
@@ -86,22 +94,28 @@ export function GameShell({
           </div>
           <div className="hud-stat">
             <div className="l">Puntuación</div>
-            <div className="v">{score.toLocaleString("es-ES")}</div>
+            <div className="v" ref={hudRefs?.score}>
+              {formatHud.score(score)}
+            </div>
           </div>
           <div className="hud-stat lives">
             <div className="l">Vidas</div>
-            <div className="v">{"♥ ".repeat(lives).trim() || "—"}</div>
+            <div className="v" ref={hudRefs?.lives}>
+              {formatHud.lives(lives)}
+            </div>
           </div>
           <div className="hud-stat level">
             <div className="l">Nivel</div>
-            <div className="v">{String(level).padStart(2, "0")}</div>
+            <div className="v" ref={hudRefs?.level}>
+              {formatHud.level(level)}
+            </div>
           </div>
         </div>
         <div className="hud-actions">
           <button
             className="btn yellow"
             onClick={onTogglePause}
-            disabled={over}
+            disabled={finalScore !== null}
           >
             {paused ? "REANUDAR" : "PAUSA"}
           </button>
@@ -169,7 +183,7 @@ export function GameShell({
         </div>
       </div>
       {controls}
-      {over && (
+      {finalScore !== null && (
         <div className="modal-bd">
           <div
             className="modal"
@@ -179,8 +193,8 @@ export function GameShell({
           >
             <h2 id="game-over-title">FIN DEL JUEGO</h2>
             <div className="final-label">PUNTUACIÓN FINAL</div>
-            <div className="final">{score.toLocaleString("es-ES")}</div>
-            {!saved ? (
+            <div className="final">{formatHud.score(finalScore)}</div>
+            {save.status !== "saved" ? (
               <>
                 <div className="input-row">
                   <input
@@ -194,16 +208,16 @@ export function GameShell({
                   />
                   <button
                     className="btn yellow"
-                    onClick={save}
+                    onClick={saveScore}
                     disabled={saving}
                     aria-busy={saving}
                   >
                     {saving ? "GUARDANDO…" : "GUARDAR PUNTUACIÓN"}
                   </button>
                 </div>
-                {saveError && (
+                {save.status === "error" && (
                   <div className="toast-error" role="alert">
-                    ▸ {saveError}
+                    ▸ {save.error}
                   </div>
                 )}
               </>

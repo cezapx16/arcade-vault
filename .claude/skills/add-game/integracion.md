@@ -62,9 +62,20 @@ Reglas fijas:
 
 `"use client"`, recibe `{ game: Game }` y renderiza `<GameShell>` con el `<canvas className="game-canvas">` como `children`. Copia el patrón de `asteroids-game.tsx`:
 
-- Estado `hud`, `paused` y `over`. El motor se crea en un `useEffect` con el canvas por ref, y la limpieza llama a `destroy` (aguanta el doble montaje de StrictMode).
-- Un único estado de pausa para el botón, `P`/`Escape` (ignoradas con `over` o con foco en un input) y `visibilitychange` cuando `document.hidden`.
-- `onEnd` llama a `end()`. `onRestart` llama a `restart()` y resetea `over` y `paused`.
+- Todo lo lleva el hook `useCanvasGame(game.id, create<Engine>Game)` (`components/games/use-canvas-game.tsx`). El motor se crea en un `useEffect` con el canvas por ref, y la limpieza llama a `destroy` (aguanta el doble montaje de StrictMode).
+- Durante la partida React no renderiza (SPEC 14). Solo hay dos estados: `paused` y `finalScore` (`number | null`; `null` = partida en curso, si no abre el modal con esa puntuación, que llega en `onGameOver(score)`).
+- El HUD no es estado: el hook expone `hudRefs` (`components/games/hud.ts`) y `onScore`/`onLives`/`onLevel` escriben `textContent` con `formatHud`. El componente pasa al shell `hud={INITIAL_HUD}` (constante de módulo, nunca estado) y `hudRefs={hudRefs}`. Nunca se guarda el HUD en un `useState`.
+- Un único estado de pausa para el botón, `P`/`Escape` (ignoradas con `finalScore !== null` o con foco en un input) y `visibilitychange` cuando `document.hidden`.
+- `togglePause`, `end`, `input` y `restart` son estables (`useCallback` sin dependencias, leen el motor de `engineRef`). `onEnd` llama a `end()`. `onRestart` llama a `restart()`, que pone `finalScore` a `null` y `paused` a `false`; el motor vuelve a emitir 0 / vidas / 1 y se escriben por ref.
+
+  ```tsx
+  const INITIAL_HUD = { score: 0, lives: 3, level: 1 };
+  // …
+  const { canvasRef, hudRefs, paused, finalScore, touch, togglePause, end, input, restart, skin, setSkin } =
+    useCanvasGame(game.id, createXGame);
+  <GameShell game={game} hud={INITIAL_HUD} hudRefs={hudRefs} paused={paused} finalScore={finalScore} …>
+  ```
+
 - Táctil (`(pointer: coarse)` con `useSyncExternalStore` y snapshot de servidor `false`, expuesto por el hook como `touch`): el motor se crea igual y el teclado sigue funcionando. El componente define su mando como constante de módulo y lo pasa al shell:
 
   ```tsx
@@ -74,10 +85,10 @@ Reglas fijas:
     repeat: ["left", "right"], // opcional: autorrepetición al mantener (170 ms / 50 ms)
   };
   // …
-  <GameShell … controls={touch && <TouchPad layout={TOUCH} onInput={input} disabled={paused || over} />}>
+  <GameShell … controls={touch && <TouchPad layout={TOUCH} onInput={input} disabled={paused || finalScore !== null} />}>
   ```
 
-  `TouchPad` (`components/games/touch-pad.tsx`) usa Pointer Events con captura por botón (multitáctil), suelta todo con `disabled` y al desmontarse, y bloquea scroll, zoom, selección y menú contextual. El layout táctil vertical/horizontal del player vive en `app/globals.css` y se activa solo con `.av-player:has(.touch-pad)`.
+  `TouchPad` (`components/games/touch-pad.tsx`) es `memo`: con `TOUCH` de módulo e `input` estable solo se renderiza cuando cambia `disabled`. Usa Pointer Events con captura por botón (multitáctil), suelta todo con `disabled` y al desmontarse, y bloquea scroll, zoom, selección y menú contextual. El layout táctil vertical/horizontal del player vive en `app/globals.css` y se activa solo con `.av-player:has(.touch-pad)`.
 
 Si ya existe un hook compartido para esto (por ejemplo, extraído por una spec de juego anterior), se usa ese en lugar de copiar.
 

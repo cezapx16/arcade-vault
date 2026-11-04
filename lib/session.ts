@@ -1,40 +1,68 @@
 "use client";
 import { useSyncExternalStore } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { getSupabaseEnv } from "@/lib/supabase/env";
 export type User = { name: string };
-const USER_KEY = "av_user";
-// Copia en memoria del usuario: es el snapshot estable que exige
-// useSyncExternalStore y permite seguir con sesión si localStorage está bloqueado.
+// Clave de la sesión simulada anterior (SPEC 01); se borra al cargar.
+const LEGACY_USER_KEY = "av_user";
+const NO_PROFILE_NAME = "JUGADOR";
+// Copia en memoria del usuario: es el snapshot estable que exige useSyncExternalStore.
+// Sale de la sesión de Supabase Auth (cookies) y del alias de public.profiles.
 let current: User | null = null;
-let loaded = false;
+let started = false;
+let seq = 0; // solo aplica la última lectura si se solapan varias
 const listeners = new Set<() => void>();
-function readUser(): User | null {
-  try {
-    return JSON.parse(localStorage.getItem(USER_KEY) || "null") as User | null;
-  } catch {
-    return null;
-  }
-}
 function notify() {
   listeners.forEach((l) => l());
 }
-function onStorage(e: StorageEvent) {
-  if (e.key !== USER_KEY && e.key !== null) return;
-  current = readUser();
+function client() {
+  return getSupabaseEnv() ? createClient() : null;
+}
+async function load(): Promise<void> {
+  const mine = ++seq;
+  let next: User | null = null;
+  try {
+    const supabase = client();
+    if (supabase) {
+      const { data } = await supabase.auth.getSession();
+      const user = data.session?.user;
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("name")
+          .eq("id", user.id)
+          .maybeSingle();
+        next = { name: profile?.name ?? NO_PROFILE_NAME };
+      }
+    }
+  } catch (error) {
+    console.error("[session] no se pudo leer la sesión:", error);
+  }
+  if (mine !== seq) return;
+  if (next?.name === current?.name) return;
+  current = next;
   notify();
+}
+// Primer subscribe: limpia la clave antigua, lee la sesión y escucha cambios de Auth.
+function start() {
+  started = true;
+  try {
+    localStorage.removeItem(LEGACY_USER_KEY);
+  } catch {}
+  void load();
+  // Sin await dentro del callback: Supabase recomienda no llamar a su API desde él.
+  client()?.auth.onAuthStateChange(() => {
+    setTimeout(() => void load(), 0);
+  });
 }
 function subscribe(listener: () => void) {
   listeners.add(listener);
-  if (listeners.size === 1) window.addEventListener("storage", onStorage);
+  if (!started) start();
   return () => {
     listeners.delete(listener);
-    if (listeners.size === 0) window.removeEventListener("storage", onStorage);
   };
 }
 function getSnapshot(): User | null {
-  if (!loaded) {
-    current = readUser();
-    loaded = true;
-  }
   return current;
 }
 function getServerSnapshot(): User | null {
@@ -43,19 +71,8 @@ function getServerSnapshot(): User | null {
 export function useUser(): User | null {
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }
-export function signIn(user: User) {
-  current = user;
-  loaded = true;
-  try {
-    localStorage.setItem(USER_KEY, JSON.stringify(user));
-  } catch {}
-  notify();
-}
-export function signOut() {
-  current = null;
-  loaded = true;
-  try {
-    localStorage.removeItem(USER_KEY);
-  } catch {}
-  notify();
+// Vuelve a leer sesión + perfil. Hay que llamarla tras signIn/signOut (Server Actions):
+// las cookies las cambia el servidor y onAuthStateChange del cliente no se entera.
+export function refreshUser(): Promise<void> {
+  return load();
 }

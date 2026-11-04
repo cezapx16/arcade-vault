@@ -142,11 +142,26 @@ Se rellena en el paso 1 (antes) y en el último paso (después).
 
 | Juego         | Antes: commits | Antes: cambios de puntuación | Después: commits | Después: cambios de puntuación |
 | ------------- | -------------- | ---------------------------- | ---------------- | ------------------------------ |
-| ROCAS         |                |                              |                  |                                |
-| CAÍDA         |                |                              |                  |                                |
-| BLOQUE BUSTER |                |                              |                  |                                |
-| SERPENTINA    |                |                              |                  |                                |
-| VAIVÉN        |                |                              |                  |                                |
+| ROCAS         | 2              | 1 (+1 vida)                  | 0                | 1 (+1 vida)                    |
+| CAÍDA         | 6              | 6                            | 0                | 6                              |
+| BLOQUE BUSTER | 6              | 2 (+2 vidas)                 | 0                | 2 (+2 vidas)                   |
+| SERPENTINA    | 2              | 2                            | 0                | 2                              |
+| VAIVÉN        | 6              | 3 (+3 vidas, game over)      | 0                | 2 (+2 vidas)                   |
+
+Notas de la medición "Antes" (2026-11-03, `npm run dev`):
+
+- Se mide en un Chrome headless lanzado desde el MCP (`browserType().launch({ channel: "chrome", headless: true })`). La ventana del MCP, si queda tapada, baja `requestAnimationFrame` a ~1 fps y la partida casi no avanza.
+- Solo cuentan los commits de la raíz de la app (`root.containerInfo === document`). El overlay de dev no hizo ninguno.
+- ROCAS: Playwright no emula la autorrepetición de una tecla mantenida y el motor dispara en cada `keydown`, así que se repite `keyboard.down("Space")` cada 50 ms. En 30 s solo hubo un cambio de puntuación visible (+20).
+- SERPENTINA: se busca la fruta leyendo el canvas con el skin clásico (serpiente `#00ff88`).
+- VAIVÉN: la partida terminó dentro de la ventana. Los 6 commits incluyen el del modal.
+- Los cambios se cuentan sondeando el HUD cada ~50 ms, así que dos cambios muy seguidos pueden contar como uno. En todos los juegos los commits ≈ cambios de puntuación + vidas (+ game over).
+
+Notas de la medición "Después" (2026-11-03, mismo método y modo):
+
+- 0 commits en los cinco juegos, también con vidas perdidas (ROCAS, BLOQUE BUSTER y VAIVÉN). Ninguna ventana llegó a subir de nivel; el nivel se escribe por la misma ref que la puntuación y las vidas.
+- Partida que termina (VAIVÉN, verificación aparte): 1 commit, el del modal, con la misma puntuación en el HUD y en el modal (290).
+- Pausa, skin y modal hacen commits, como se esperaba. Con el mando visible (390×844, táctil) tocar el mando o cambiar de skin no renderiza el `TouchPad`; pulsar PAUSA sí lo renderiza una vez, porque cambia `disabled` (`paused || finalScore !== null`). El criterio "el `TouchPad` no se renderiza al pausar" solo se cumple "mientras `disabled` no cambie" (como dice el Alcance), y la prueba de `data-pressed` pasa en los dos casos porque React no reescribe atributos que no cambian.
 
 ## Plan de implementación
 

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import {
   DIR_LABELS,
   REPEAT_DELAY,
@@ -56,7 +56,8 @@ function createPadController() {
 }
 // Mando virtual: cruceta a la izquierda y botones de acción a la derecha.
 // Cada botón sigue su propio puntero, así que varios dedos a la vez funcionan.
-export function TouchPad({
+// memo: con layout e onInput estables solo se renderiza cuando cambia `disabled`.
+export const TouchPad = memo(function TouchPad({
   layout,
   onInput,
   disabled,
@@ -135,4 +136,4 @@ export function TouchPad({
       )}
     </div>
   );
-}
+});
