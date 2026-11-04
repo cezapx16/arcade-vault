@@ -49,6 +49,24 @@ export type Database = {
         };
         Relationships: [];
       };
+      profiles: {
+        Row: {
+          created_at: string;
+          id: string;
+          name: string;
+        };
+        Insert: {
+          created_at?: string;
+          id: string;
+          name: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          name?: string;
+        };
+        Relationships: [];
+      };
       scores: {
         Row: {
           created_at: string;
@@ -100,6 +118,7 @@ export type Database = {
       };
     };
     Functions: {
+      alias_available: { Args: { p_name: string }; Returns: boolean };
       health_check: { Args: never; Returns: string };
       leaderboard: {
         Args: { p_game: string; p_limit: number };
