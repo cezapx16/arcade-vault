@@ -1850,6 +1850,112 @@ a {
   padding: 12px;
   font-size: 9px;
 }
+/* OAuth aún no disponible: botón apagado con la etiqueta debajo */
+.social .btn:disabled {
+  flex-direction: column;
+  gap: 6px;
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.social .btn:disabled:hover {
+  color: var(--ink-dim);
+  border-color: var(--ink-faint);
+  box-shadow: none;
+}
+.social .btn:disabled:active {
+  transform: none;
+}
+.social .soon {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: var(--ink-faint);
+}
+/* Error de la tarjeta: aviso magenta con un bloque "!" de píxel */
+.auth-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: 0.06em;
+  color: var(--magenta);
+  background: rgba(255, 0, 110, 0.08);
+  border-left: 3px solid var(--magenta);
+  text-shadow: 0 0 6px rgba(255, 0, 110, 0.45);
+  animation: shake 0.3s;
+}
+.auth-error::before {
+  content: "!";
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  font-family: var(--pixel);
+  font-size: 9px;
+  color: var(--bg);
+  background: var(--magenta);
+  text-shadow: none;
+  box-shadow: 0 0 8px rgba(255, 0, 110, 0.6);
+}
+/* Enviando: el botón se convierte en una barra de carga de franjas que avanza */
+.auth-card .btn:disabled[aria-busy="true"] {
+  color: var(--cyan);
+  cursor: wait;
+  background: repeating-linear-gradient(
+    -45deg,
+    rgba(0, 245, 255, 0.14) 0 10px,
+    transparent 10px 20px
+  );
+  background-size: 28.28px 100%;
+  animation: auth-loading 0.6s linear infinite;
+}
+.auth-card .btn:disabled[aria-busy="true"]:active {
+  transform: none;
+}
+@keyframes auth-loading {
+  to {
+    background-position: 28.28px 0;
+  }
+}
+/* Registro enviado: "REVISA TU CORREO" con el email resaltado */
+.auth-sent {
+  text-align: center;
+  padding: 8px 0 4px;
+}
+.auth-sent h3 {
+  margin: 0 0 14px;
+  font-family: var(--pixel);
+  font-size: 14px;
+  line-height: 1.5;
+  letter-spacing: 0.1em;
+}
+.auth-sent p {
+  margin: 0 auto 20px;
+  max-width: 34ch;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--ink-dim);
+}
+.auth-sent strong {
+  display: block;
+  margin: 8px 0;
+  font-weight: 400;
+  color: var(--yellow);
+  text-shadow: 0 0 8px rgba(245, 255, 0, 0.35);
+  overflow-wrap: anywhere;
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-error,
+  .auth-card .btn:disabled[aria-busy="true"] {
+    animation: none;
+  }
+}
 /* ===== salón ===== */
 .av-hall {
   max-width: 1200px;

@@ -123,8 +123,9 @@ function RegisterForm({ onDone }: { onDone: () => void }) {
       <div className="auth-sent" role="status">
         <h3 className="neon-cyan">REVISA TU CORREO</h3>
         <p>
-          Te hemos enviado un enlace de confirmación a{" "}
-          <strong>{state.email}</strong>. Ábrelo para activar tu cuenta.
+          Te hemos enviado un enlace de confirmación a
+          <strong>{state.email}</strong>
+          Ábrelo para activar tu cuenta y vuelve para entrar.
         </p>
         <button type="button" className="btn lg w-full" onClick={onDone}>
           IR A ENTRAR
