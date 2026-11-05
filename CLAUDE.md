@@ -33,6 +33,7 @@ Current state (specs 01–15): visual MVP (home, library, game detail, player, H
   - `skin-designer` — makes every real game have the 4 skins (`clasico`, `neon`, `retro`, `pastel`) readable on dark; status in `references/game-with-themes.md`.
   - `mobile-porter` — ports new real games to touch/mobile per spec 10, verified with Playwright; status in `references/mobile-status.md`.
   - `game-performance-booster` — audits and fixes a game's performance per specs 13–14, measuring before/after; status in `references/performance-status.md`.
+  - `security-auditor` — read-only security audit of the Supabase database (advisors, RLS, policies, grants, `security definer`, migration drift, logs) and the app (secrets, headers, Server Actions, routes, dependencies); modes `completa`/`db`/`app`; proposes fixes as specs; status in `references/security/security-status.md`.
 - Merge to `main` via PR per spec.
 
 ## Commands
@@ -99,4 +100,4 @@ A `PostToolUse` hook (`.claude/hooks/format-and-lint.mjs`) runs after every Writ
 
 - `references/templates/` — original JSX/HTML design prototypes the screens were built from.
 - `references/started-games/` — original vanilla-JS games to port; `references/02-asteroids/`, `03-tetris/`, `04-arkanoid/` — port material; `references/source-assets/` — raw assets (e.g. Snake fruit sprites); `references/gamepad-assets/` — Gamepad MK-II art for spec 11.
-- Exceptions (living docs, editable): `references/implemented-games.md` — catalog snapshot from the `games` table (real vs. simulated); `references/game-suggestions-todo.md` (`game-planner`/`game-jam`); `references/game-with-themes.md` (`skin-designer`); `references/mobile-status.md` (`mobile-porter`) and `references/performance-status.md` (`game-performance-booster`) — the last two don't exist yet, the agent creates them on its first run. `references/security/security-checklist.md` — security checklist status (spec 16).
+- Exceptions (living docs, editable): `references/implemented-games.md` — catalog snapshot from the `games` table (real vs. simulated); `references/game-suggestions-todo.md` (`game-planner`/`game-jam`); `references/game-with-themes.md` (`skin-designer`); `references/mobile-status.md` (`mobile-porter`) and `references/performance-status.md` (`game-performance-booster`) — the last two don't exist yet, the agent creates them on its first run. `references/security/security-checklist.md` — security checklist status (spec 16); `references/security/security-status.md` (`security-auditor`, created on its first run).

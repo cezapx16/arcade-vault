@@ -1,6 +1,6 @@
 # SPEC 16 — Medidas de seguridad básicas
 
-> **Estado:** aprobado
+> **Estado:** implementado
 > **Depende de:** SPEC 04, SPEC 06, SPEC 15
 > **Fecha:** 2026-11-04
 > **Objetivo:** Cerrar el checklist de `references/security/security-checklist.md` con cabeceras de seguridad en Next, la configuración de contraseñas y límites de Supabase Auth, y los avisos de seguridad del panel de Supabase.
