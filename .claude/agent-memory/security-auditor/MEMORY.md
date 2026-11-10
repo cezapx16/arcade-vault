@@ -2,9 +2,10 @@
 
 ## Registro de auditorías
 
-| Fecha      | Modo     | Críticos | Altos | Medios | Bajos | Avisos de advisors (seguridad / rendimiento)   | Notas                                                                                                                                                                                                                                                                                                               |
-| ---------- | -------- | -------- | ----- | ------ | ----- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-11-04 | completa | 0        | 0     | 2      | 5     | 1 WARN (`auth_leaked_password_protection`) / 0 | Primera auditoría, rama spec-16 (pasos 1, 2, 4). Medios: `emailRedirectTo` desde cabeceras (`requestOrigin`) y `/api/contact` sin límite. `npm run build` falló con "Another next build process is already running" (había un `next dev` del usuario en :3000); se usó el build existente con `next start -p 3100`. |
+| Fecha      | Modo     | Críticos | Altos | Medios | Bajos | Avisos de advisors (seguridad / rendimiento)   | Notas                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ---------- | -------- | -------- | ----- | ------ | ----- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-11-04 | completa | 0        | 0     | 2      | 5     | 1 WARN (`auth_leaked_password_protection`) / 0 | Primera auditoría, rama spec-16 (pasos 1, 2, 4). Medios: `emailRedirectTo` desde cabeceras (`requestOrigin`) y `/api/contact` sin límite. `npm run build` falló con "Another next build process is already running" (había un `next dev` del usuario en :3000); se usó el build existente con `next start -p 3100`.                                                                                                                         |
+| 2026-11-10 | app      | 0        | 0     | 1      | 2     | — (modo app)                                   | Rama spec-17. Cerrados: `emailRedirectTo` (ahora `SITE_URL`), enumeración de emails en `signUp`, `type` sin lista blanca en `/auth/confirm`. Siguen: `/api/contact` sin límite (medio), 308 de `/juegos` sin cabeceras (bajo), `getSiteUrl()` devuelve el valor crudo y no `url.origin` (bajo). Nueva fila manual: `SITE_URL` en el hosting. Ruta nueva `/animal-counter` (cliente estático, sin impacto). Build y `next start -p 3100` OK. |
 
 ## Línea base de la base de datos
 
@@ -31,7 +32,7 @@
 
 ## Confirmaciones manuales del dashboard
 
-- (ninguna todavía; a 2026-11-04 están pendientes: mínimo 8, rate limits, plan/leaked password, confirmación de email, plantilla Confirm signup, Redirect URLs)
+- (ninguna todavía; a 2026-11-10 siguen pendientes: mínimo 8, rate limits, plan/leaked password, confirmación de email, plantilla Confirm signup, Redirect URLs y `SITE_URL` en el hosting — SPEC 17 paso 4 aplazado por el usuario)
 
 ## Preferencias del usuario
 
