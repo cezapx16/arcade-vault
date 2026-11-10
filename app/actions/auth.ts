@@ -1,6 +1,6 @@
 "use server";
 import { isAuthError, type AuthError } from "@supabase/supabase-js";
-import { headers } from "next/headers";
+import { getSiteUrl } from "@/lib/site-url";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 export type AuthState =
@@ -49,15 +49,6 @@ function authMessage(error: AuthError): string {
       return MSG.unavailable;
   }
 }
-// Origin de la petición para el enlace del correo (vale en local y en producción).
-async function requestOrigin(): Promise<string> {
-  const h = await headers();
-  const origin = h.get("origin");
-  if (origin) return origin;
-  const host = h.get("x-forwarded-host") ?? h.get("host");
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  return `${proto}://${host}`;
-}
 export async function signUp(
   _prev: AuthState,
   formData: FormData,
@@ -71,6 +62,12 @@ export async function signUp(
   if (password.length < MIN_PASSWORD) return fail(MSG.passwordShort);
   if (password !== password2) return fail(MSG.passwordMismatch);
   if (!getSupabaseEnv()) return fail(MSG.unavailable);
+  // Origen fijo para el enlace del correo: nunca sale de las cabeceras (SPEC 17).
+  const siteUrl = getSiteUrl();
+  if (!siteUrl) {
+    console.error("[auth] signUp: falta SITE_URL");
+    return fail(MSG.unavailable);
+  }
   try {
     const supabase = await createClient();
     const available = await supabase.rpc("alias_available", { p_name: name });
@@ -81,7 +78,7 @@ export async function signUp(
       password,
       options: {
         data: { name }, // alias ya en mayúsculas; lo lee el trigger
-        emailRedirectTo: `${await requestOrigin()}/auth/confirm`,
+        emailRedirectTo: `${siteUrl}/auth/confirm`,
       },
     });
     if (error) {
