@@ -1,6 +1,6 @@
 # SPEC 17 — Endurecer la autenticación
 
-> **Estado:** aprobado
+> **Estado:** implementado 
 > **Depende de:** SPEC 15, SPEC 16
 > **Fecha:** 2026-11-10
 > **Objetivo:** Cerrar los hallazgos de la revisión de seguridad de la autenticación del 2026-11-10: el enlace del correo sale de un origen fijo, el registro deja de revelar si un email tiene cuenta y `/auth/confirm` solo acepta el tipo `email`.
