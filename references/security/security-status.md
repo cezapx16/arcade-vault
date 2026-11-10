@@ -26,24 +26,25 @@
 | Auth | Confirmación de email activada | manual | No consultable por MCP | 2026-11-04 |
 | Auth | Plantilla "Confirm signup" con `{{ .RedirectTo }}?token_hash=…&type=email` | manual | Logs: 2 peticiones a `/auth/v1/verify` (ruta de la plantilla por defecto) | 2026-11-04 |
 | Auth | Redirect URLs limitadas a local y producción | manual | No consultable por MCP; es la única barrera del hallazgo de `emailRedirectTo` | 2026-11-04 |
-| App | Sin secretos versionados | ✅ | `git grep` de patrones: solo menciones en docs (`CLAUDE.md:85`, `README.md:35`, `specs/04…:147`, `specs/06…:250`) | 2026-11-04 |
-| App | `.env*` fuera del repo | ✅ | `.gitignore:40-42`; `git ls-files` solo `.env.example` (y `lib/supabase/env.ts`, código) | 2026-11-04 |
-| App | Ninguna `NEXT_PUBLIC_*` secreta | ✅ | Solo `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (`lib/supabase/env.ts:5-8`) | 2026-11-04 |
-| App | `RESEND_API_KEY` solo en servidor | ✅ | Solo en `app/api/contact/route.ts:48` (sin `"use client"`) | 2026-11-04 |
-| App | Cabeceras de la SPEC 16 y sin `X-Powered-By` | ✅ | `curl -sI` contra `next start` en `/`, `/games`, `/api/health`, `/auth/confirm` | 2026-11-04 |
-| App | Redirección `/juegos/:id` → `/games/:id` | ⚠️ | 308 correcto, pero la respuesta sale sin las cabeceras de seguridad (impacto mínimo) | 2026-11-04 |
-| App | CSP y HSTS | aceptado | Fuera de alcance — SPEC 16 | 2026-11-04 |
-| App | `submitScore` valida en servidor | ✅ | `app/actions/scores.ts:15-28` (id regex, nombre 1–10 mayúsculas, entero 0–9 999 999) | 2026-11-04 |
-| App | `signUp`/`signIn` validan y traducen errores | ⚠️ | Validación y `MSG` correctos (`app/actions/auth.ts:65-72,33-50`), pero `signUp` revela "ESE EMAIL YA TIENE CUENTA" (`:41-43,98-100`) | 2026-11-04 |
-| App | `emailRedirectTo` desde un origen fijo | ⚠️ | `requestOrigin()` usa `Origin`/`X-Forwarded-Host` de la petición (`app/actions/auth.ts:53-60,84`) | 2026-11-04 |
-| App | Acciones sin datos sensibles en la respuesta | ✅ | `AuthState` solo devuelve alias propio o email propio; `SubmitScoreResult` sin datos | 2026-11-04 |
-| App | `/api/contact` | ⚠️ | Validación, honeypot, envío como `text` y errores genéricos OK (`app/api/contact/route.ts`); sin límite de frecuencia | 2026-11-04 |
-| App | `/api/health` sin filtrar detalles | ✅ | Solo `ok/db/auth/time` o mensajes fijos (`app/api/health/route.ts`) | 2026-11-04 |
-| App | `/auth/confirm` sin redirección abierta | ⚠️ | Redirige solo a `/` o `/login?error=enlace` (`app/auth/confirm/route.ts:27`); `type` sin lista blanca (`:11`) | 2026-11-04 |
-| App | Clientes de Supabase solo con clave publicable | ✅ | `lib/supabase/client.ts`, `server.ts`, `public.ts`, `proxy.ts` usan `getSupabaseEnv()` | 2026-11-04 |
-| App | `proxy.ts` solo refresca la sesión | ✅ | `lib/supabase/proxy.ts:27` `getClaims()`, sin protección de rutas | 2026-11-04 |
-| App | XSS / inyección | ✅ | Sin `dangerouslySetInnerHTML`, `innerHTML`, `eval`, `new Function`; consultas con el cliente | 2026-11-04 |
-| Dependencias | `npm audit --omit=dev` | ✅ | 0 vulnerabilidades | 2026-11-04 |
-| Dependencias | Versiones | ✅ | next 16.4.2, react 19.3.0, @supabase/supabase-js 2.118.0, @supabase/ssr 0.12.7, resend 6.34.1 | 2026-11-04 |
+| App | Sin secretos versionados | ✅ | `git grep` de patrones: solo menciones en docs (`CLAUDE.md:85`, `README.md:36`, `specs/04…:147`, `specs/06…:250`, `.claude/agents/security-auditor.md:132`, el propio patrón) | 2026-11-10 |
+| App | `.env*` fuera del repo | ✅ | `.gitignore:40-42`; `git ls-files` solo `.env.example` (y `lib/supabase/env.ts`, código) | 2026-11-10 |
+| App | Ninguna `NEXT_PUBLIC_*` secreta | ✅ | Solo `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (`lib/supabase/env.ts:6-8`); `SITE_URL` sin prefijo (`.env.example:13`, `lib/site-url.ts:6`) | 2026-11-10 |
+| App | `RESEND_API_KEY` solo en servidor | ✅ | Solo en `app/api/contact/route.ts` (sin `"use client"`) | 2026-11-10 |
+| App | Cabeceras de la SPEC 16 y sin `X-Powered-By` | ✅ | `curl -sI` contra `next start` en `/`, `/games`, `/api/health`, `/auth/confirm` | 2026-11-10 |
+| App | Redirección `/juegos/:id` → `/games/:id` | ⚠️ | 308 a `/games/rocas` correcto, pero la respuesta sigue sin las cabeceras de seguridad (impacto mínimo) | 2026-11-10 |
+| App | CSP y HSTS | aceptado | Fuera de alcance — SPEC 16 | 2026-11-10 |
+| App | `submitScore` valida en servidor | ✅ | `app/actions/scores.ts:15-28` (sin cambios desde el 2026-11-04) | 2026-11-10 |
+| App | `signUp`/`signIn` validan y traducen errores | ✅ | Validación `app/actions/auth.ts:56-59`, `MSG` + `authMessage()` `:15-25,32-47`; anti-enumeración (SPEC 17): `user_already_exists`/`email_exists` e `identities: []` → `check-email` (`:88-99`); sin "ESE EMAIL YA TIENE CUENTA" en `app`/`components` | 2026-11-10 |
+| App | `emailRedirectTo` desde un origen fijo | ✅ | `getSiteUrl()` (`lib/site-url.ts:5-16`, solo `process.env.SITE_URL`, http/https) → `` `${siteUrl}/auth/confirm` `` (`app/actions/auth.ts:62-66,77`); sin `headers()`/`Origin`/`X-Forwarded-*`. En producción depende de `SITE_URL` en el hosting (manual, SPEC 17 paso 4) | 2026-11-10 |
+| App | `SITE_URL` definida en el hosting de producción | manual | SPEC 17 paso 4, pendiente; sin ella `signUp` responde "SERVICIO NO DISPONIBLE" (`app/actions/auth.ts:63-66`) | 2026-11-10 |
+| App | Acciones sin datos sensibles en la respuesta | ✅ | `AuthState` solo devuelve alias propio o el email que envió el propio usuario; `SubmitScoreResult` sin datos | 2026-11-10 |
+| App | `/api/contact` | ⚠️ | Validación, honeypot, envío como `text` y errores genéricos OK (`app/api/contact/route.ts`, sin cambios); sin límite de frecuencia | 2026-11-10 |
+| App | `/api/health` sin filtrar detalles | ✅ | Solo `ok/db/auth/time` o mensajes fijos (`app/api/health/route.ts`, sin cambios) | 2026-11-10 |
+| App | `/auth/confirm` sin redirección abierta | ✅ | Redirige solo a `/` o `/login?error=enlace` (`app/auth/confirm/route.ts:32`); lista blanca `ALLOWED_TYPES = ["email"]` (`:9-12,16,18`); `curl`: `type=recovery` y `next=https://…` → 307 a `/login?error=enlace` | 2026-11-10 |
+| App | Clientes de Supabase solo con clave publicable | ✅ | `lib/supabase/client.ts`, `server.ts`, `public.ts`, `proxy.ts` usan `getSupabaseEnv()` | 2026-11-10 |
+| App | `proxy.ts` solo refresca la sesión | ✅ | `lib/supabase/proxy.ts:27` `getClaims()`, sin protección de rutas | 2026-11-10 |
+| App | XSS / inyección | ✅ | Sin `dangerouslySetInnerHTML`, `innerHTML`, `eval`, `new Function` en `app`/`lib`/`components`; consultas con el cliente | 2026-11-10 |
+| Dependencias | `npm audit --omit=dev` | ✅ | 0 vulnerabilidades | 2026-11-10 |
+| Dependencias | Versiones | ✅ | next 16.4.2, react 19.3.0, @supabase/supabase-js ^2.118.0, @supabase/ssr ^0.12.7, resend ^6.34.1 | 2026-11-10 |
 
 Leyenda: `✅` cumple · `⚠️` hallazgo medio o bajo · `❌` hallazgo crítico o alto · `aceptado` riesgo aceptado con su spec de origen · `manual` pendiente de confirmación del usuario en el dashboard · `—` no revisado.

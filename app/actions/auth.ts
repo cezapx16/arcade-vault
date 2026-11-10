@@ -1,13 +1,13 @@
 "use server";
 import { isAuthError, type AuthError } from "@supabase/supabase-js";
-import { headers } from "next/headers";
+import { getSiteUrl } from "@/lib/site-url";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 export type AuthState =
   | { status: "idle" }
   | { status: "error"; message: string }
   | { status: "ok"; name: string } // signIn correcto, con el alias de profiles
-  | { status: "check-email"; email: string }; // signUp correcto
+  | { status: "check-email"; email: string }; // signUp correcto o email ya registrado
 const ALIAS = /^[A-Z0-9_]{1,10}$/;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD = 8;
@@ -18,7 +18,6 @@ const MSG = {
   emailInvalid: "INTRODUCE UN EMAIL VÁLIDO",
   passwordShort: "LA CONTRASEÑA NECESITA 8 CARACTERES",
   passwordMismatch: "LAS CONTRASEÑAS NO COINCIDEN",
-  emailTaken: "ESE EMAIL YA TIENE CUENTA",
   badCredentials: "EMAIL O CONTRASEÑA INCORRECTOS",
   notConfirmed: "CONFIRMA TU EMAIL ANTES DE ENTRAR",
   rateLimit: "DEMASIADOS INTENTOS, ESPERA UN POCO",
@@ -38,9 +37,6 @@ function authMessage(error: AuthError): string {
       return MSG.rateLimit;
     case "weak_password":
       return MSG.passwordShort;
-    case "user_already_exists":
-    case "email_exists":
-      return MSG.emailTaken;
     case "invalid_credentials":
       return MSG.badCredentials;
     case "email_not_confirmed":
@@ -48,15 +44,6 @@ function authMessage(error: AuthError): string {
     default:
       return MSG.unavailable;
   }
-}
-// Origin de la petición para el enlace del correo (vale en local y en producción).
-async function requestOrigin(): Promise<string> {
-  const h = await headers();
-  const origin = h.get("origin");
-  if (origin) return origin;
-  const host = h.get("x-forwarded-host") ?? h.get("host");
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  return `${proto}://${host}`;
 }
 export async function signUp(
   _prev: AuthState,
@@ -71,17 +58,23 @@ export async function signUp(
   if (password.length < MIN_PASSWORD) return fail(MSG.passwordShort);
   if (password !== password2) return fail(MSG.passwordMismatch);
   if (!getSupabaseEnv()) return fail(MSG.unavailable);
+  // Origen fijo para el enlace del correo: nunca sale de las cabeceras (SPEC 17).
+  const siteUrl = getSiteUrl();
+  if (!siteUrl) {
+    console.error("[auth] signUp: falta SITE_URL");
+    return fail(MSG.unavailable);
+  }
   try {
     const supabase = await createClient();
     const available = await supabase.rpc("alias_available", { p_name: name });
     if (available.error) throw available.error;
     if (!available.data) return fail(MSG.aliasTaken);
-    const { data, error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: { name }, // alias ya en mayúsculas; lo lee el trigger
-        emailRedirectTo: `${await requestOrigin()}/auth/confirm`,
+        emailRedirectTo: `${siteUrl}/auth/confirm`,
       },
     });
     if (error) {
@@ -92,12 +85,17 @@ export async function signUp(
         if (again.data === false) return fail(MSG.aliasTaken);
       }
       console.error("[auth] signUp:", error.code, error.message);
+      // Anti-enumeración (SPEC 17): un email ya registrado responde igual que uno nuevo.
+      if (
+        error.code === "user_already_exists" ||
+        error.code === "email_exists"
+      ) {
+        return { status: "check-email", email };
+      }
       return fail(authMessage(error));
     }
-    // Con la confirmación activada, un email ya registrado no da error (anti-enumeración).
-    if (data.user && data.user.identities?.length === 0) {
-      return fail(MSG.emailTaken);
-    }
+    // Con la confirmación activada, un email ya registrado llega aquí sin error y con
+    // data.user.identities vacío: también "check-email", para no revelar que tiene cuenta.
     return { status: "check-email", email };
   } catch (error) {
     console.error("[auth] signUp: Supabase no disponible:", error);

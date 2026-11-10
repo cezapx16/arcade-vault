@@ -31,6 +31,7 @@ Copia `.env.example` a `.env.local` y rellena:
 
 - `NEXT_PUBLIC_SUPABASE_URL` — URL del proyecto (`https://<ref>.supabase.co`).
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` — publishable key (`sb_publishable_...`), en _Project Settings → API Keys_.
+- `SITE_URL` — origen público de la app, sin barra final (`http://localhost:3000` en local, `https://<dominio>` en producción). Solo de servidor: es la base del enlace del correo de confirmación (ver Autenticación). En desarrollo, si falta, se usa `http://localhost:3000`; en producción, sin ella, el registro responde "SERVICIO NO DISPONIBLE".
 
 Nunca pongas la `service_role` ni una `sb_secret_...` en estas variables: las `NEXT_PUBLIC_*` llegan al navegador.
 
@@ -54,11 +55,11 @@ Las migraciones son archivos SQL en `supabase/migrations/` (`AAAAMMDDHHMMSS_nomb
 
 Cuentas reales con Supabase Auth (SPEC 15): email + contraseña, con confirmación por correo, y un alias arcade único.
 
-- **Registro** (`/login?tab=registro`): alias, email, contraseña (8 caracteres como mínimo) y confirmación. El alias se pasa a mayúsculas y tiene que cumplir `^[A-Z0-9_]{1,10}$`. Supabase envía un correo con el enlace de confirmación.
+- **Registro** (`/login?tab=registro`): alias, email, contraseña (8 caracteres como mínimo) y confirmación. El alias se pasa a mayúsculas y tiene que cumplir `^[A-Z0-9_]{1,10}$`. Supabase envía un correo con el enlace de confirmación. Si el email ya tiene cuenta, la tarjeta muestra la misma pantalla "REVISA TU CORREO" que un registro nuevo, para no revelar qué emails están registrados (SPEC 17).
 - **Alias:** tabla `public.profiles` (`id` = `auth.users.id`, `name` único), creada por el trigger `on_auth_user_created` con los metadatos del registro. Lectura pública; nadie escribe desde el cliente. `alias_available(p_name)` comprueba el alias antes del registro.
 - **Inicio de sesión** con email + contraseña (no con el alias). **Cierre de sesión** desde el botón con el alias del nav o "Cerrar sesión" en el menú móvil.
 - **Server Actions** en `app/actions/auth.ts` (`signUp`, `signIn`, `signOut`), con el cliente SSR. Validan en el servidor y traducen los errores de Supabase a mensajes en español.
-- **Confirmación:** `app/auth/confirm/route.ts` canjea el `token_hash` del correo (`verifyOtp`), inicia sesión y redirige a `/`. Si el enlace no vale, a `/login?error=enlace`.
+- **Confirmación:** `app/auth/confirm/route.ts` canjea el `token_hash` del correo (`verifyOtp`), inicia sesión y redirige a `/`. Si el enlace no vale, a `/login?error=enlace`. Solo acepta `type=email`: cualquier otro tipo (`recovery`, `magiclink`…) va a `/login?error=enlace` sin llamar a `verifyOtp` (SPEC 17).
 - **En el cliente**, `lib/session.ts` expone `useUser()` (`{ name } | null`, leído de la sesión y de `profiles`) y `refreshUser()`, que hay que llamar tras `signIn`/`signOut` porque las cookies las cambia el servidor.
 - `/login` con sesión redirige a `/`. Ninguna ruta está protegida: se puede jugar y guardar puntuaciones como invitado, y las puntuaciones aún no se ligan a la cuenta.
 
@@ -75,7 +76,7 @@ Hay que hacerla una vez por proyecto de Supabase; sin ella, el enlace del correo
    >
    ```
 
-   `{{ .RedirectTo }}` es el `emailRedirectTo` que manda `signUp` (`<origin>/auth/confirm`, calculado desde la petición), así que sirve igual en local y en producción sin tocar el Site URL.
+   `{{ .RedirectTo }}` es el `emailRedirectTo` que manda `signUp`: `${SITE_URL}/auth/confirm`. Nunca se calcula con las cabeceras de la petición (SPEC 17), así que hay que definir `SITE_URL` en cada entorno; no hace falta tocar el Site URL del dashboard.
 
 3. **Authentication → URL Configuration → Redirect URLs:** añade `http://localhost:3000/**` y la URL de producción (`https://<dominio>/**`).
 
